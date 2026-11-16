@@ -1,0 +1,12 @@
+# Prepreči prenos baze in SQL datoteke
+<IfModule mod_authz_core.c>
+    <FilesMatch "\.(sqlite|sql|db)(-journal|-wal|-shm)?$">
+        Require all denied
+    </FilesMatch>
+</IfModule>
+<IfModule !mod_authz_core.c>
+    <FilesMatch "\.(sqlite|sql|db)(-journal|-wal|-shm)?$">
+        Order allow,deny
+        Deny from all
+    </FilesMatch>
+</IfModule>
