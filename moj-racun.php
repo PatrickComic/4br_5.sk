@@ -22,6 +22,7 @@ glava('Moj račun – pat.si');
 ?>
 
 <div class="panel">
+    <p class="m">Skrbniki lahko zaradi podpore in moderiranja pregledujejo podatke, oglase in pogovore. Skrbniški vpogledi v pogovore se beležijo.</p>
     <h2>Moj račun <?php if (!empty($u['je_admin'])): ?><span class="badge">Skrbnik</span><?php endif; ?></h2>
     <p>
         <strong>Uporabniško ime:</strong> <?= h($u['uporabnisko_ime']) ?><br>

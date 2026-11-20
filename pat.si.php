@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $slika = null;
 
         if ($napaka === '') {
-            $rez = shraniSliko('slika');
+            $rez = shraniSlike();
 
             if (is_string($rez)) {
                 $napaka = $rez;
@@ -178,6 +178,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif ($akcija === 'brisi') {
 
         $id = (int)($_POST['oglas_id'] ?? 0);
+        // Skrbniški posegi tudi na glavni strani uporabljajo enaka atomska pravila.
+        $target = sqlVrstica('SELECT uporabnik_id FROM oglas WHERE id=?', [$id]);
+        if ((int)$u['admin_level'] > 0 && $target && (int)$target['uporabnik_id'] !== (int)$u['id']) {
+            $_POST['akcija'] = 'izbrisi_oglas'; $_POST['id'] = (string)$id;
+            try { adminDejanje($u); flash('del', 'Oglas je izbrisan.'); }
+            catch (Throwable $e) { flash('err', 'Oglasa ni mogoče izbrisati ali nimaš dovoljenja.'); }
+            preusmeri(($_POST['nazaj'] ?? '') === 'moj-racun' ? 'moj-racun.php' : DOMACA);
+        }
 
         // Kam se vrnemo po brisanju (le dovoljene strani).
         $nazaj = ($_POST['nazaj'] ?? '') === 'moj-racun' ? 'moj-racun.php' : DOMACA;
@@ -190,11 +198,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flash('err', 'Oglas ne obstaja.');
 
         } elseif ((int)$oglas['uporabnik_id'] === (int)$u['id']
-                  || !empty($u['je_admin'])) {
+                  || smeUpravljati($u, sqlVrstica('SELECT * FROM uporabnik WHERE id=?', [(int)$oglas['uporabnik_id']]))) {
             try {
                 $st = $db->prepare('DELETE FROM oglas WHERE id = ?');
                 $st->execute([$id]);
                 izbrisiSliko($oglas['slika'] ?? null);
+                if ((int)$u['admin_level']>0) dnevnik($u,'Izbris oglasa',(string)$id,'Glavna stran');
 
                 flash(
                     'del',
@@ -219,6 +228,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 /* =====================================
    ISKANJE IN FILTRIRANJE
    ===================================== */
+
+if (isset($_GET['oglas'])) { prikaziOglas((int)$_GET['oglas']); exit; }
 
 $q = trim((string)($_GET['q'] ?? ''));
 $fk = (string)($_GET['kat'] ?? '');
@@ -258,7 +269,7 @@ $oglasi = $st->fetchAll();
 
 $skupaj = count($oglasi);
 $filtriran = ($q !== '' || $fk !== '' || $fs !== '' || $fv !== '');
-$jeAdmin = $u && !empty($u['je_admin']);
+$jeAdmin = $u && (int)$u['admin_level'] > 0;
 
 // Oglasi, pri katerih ima prijavljeni kupec že odprt pogovor.
 $mojiPog = [];
@@ -344,8 +355,8 @@ glava();
     <textarea class="full" name="opis" rows="3" maxlength="300" placeholder="Opis ali kaj iščeš v zameno" aria-label="Opis"><?= h($_POST['opis'] ?? '') ?></textarea>
 
     <label class="full slika-polje">
-        <span>📷 Slika (neobvezno, JPG/PNG/WebP, do 5 MB)</span>
-        <input type="file" name="slika" accept="image/jpeg,image/png,image/webp" onchange="if(this.files[0]&&this.files[0].size>5242880){alert('Slika je prevelika (največ 5 MB).');this.value='';}">
+        <span>📷 Slike (največ 8, JPG/PNG/WebP, vsaka do 5 MB)</span>
+        <input type="file" name="slika[]" multiple accept="image/jpeg,image/png,image/webp" onchange="if(this.files.length>8||Array.from(this.files).some(f=>f.size>5242880)){alert('Naloži največ 8 slik, vsaka do 5 MB.');this.value='';}">
     </label>
 
     <button class="full" type="submit">Objavi oglas</button>
@@ -381,12 +392,12 @@ glava();
 <article class="c <?= $o['vrsta'] === 'Izmenjava' ? 'izm' : '' ?>">
 
     <?php if (!empty($o['slika']) && preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', $o['slika'])): ?>
-    <a class="slika" href="<?= h(URL_SLIK . $o['slika']) ?>" target="_blank" rel="noopener">
+    <a class="slika" href="pat.si.php?oglas=<?= (int)$o['id'] ?>">
         <img src="<?= h(URL_SLIK . $o['slika']) ?>" alt="Slika: <?= h($o['naslov']) ?>" loading="lazy">
     </a>
     <?php endif; ?>
 
-    <h3><?= h($o['naslov']) ?></h3>
+    <h3><a class="oglas-open" href="pat.si.php?oglas=<?= (int)$o['id'] ?>"><?= h($o['naslov']) ?></a></h3>
 
     <div class="tags">
         <span class="tag <?= $o['vrsta'] === 'Izmenjava' ? 'p' : '' ?>"><?= h($o['vrsta']) ?></span>
@@ -433,7 +444,7 @@ glava();
     <div class="m"><a href="prijava.php">Prijavi se</a> za pošiljanje sporočil.</div>
     <?php endif; ?>
 
-    <?php if ($lasten || $jeAdmin): ?>
+    <?php if ($lasten || ($jeAdmin && smeUpravljati($u, sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[(int)$o['uporabnik_id']])))): ?>
     <form method="post" action="<?= h(DOMACA) ?>" onsubmit="return confirm('Res izbrišem ta oglas?')">
         <?= csrfPolje() ?>
         <input type="hidden" name="akcija" value="brisi">

@@ -1,100 +1,40 @@
 <?php
 require __DIR__ . '/inc.php';
-
-if (uporabnik()) {
-    preusmeri(DOMACA);
-}
-
-$napaka = '';
-$ime = '';
-$email = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    preveriCsrf();
-
-    $ime = postText('uporabnisko_ime', 30);
-    $email = postText('email', 80);
-    $geslo = (string)($_POST['geslo'] ?? '');
-    $geslo2 = (string)($_POST['geslo2'] ?? '');
-
-    if (!preg_match('/^[\p{L}\p{N}_. -]{3,30}$/u', $ime)) {
-        $napaka = 'Uporabniško ime naj ima 3–30 znakov (črke, številke, _ . -).';
-
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $napaka = 'Vnesi veljaven e-naslov.';
-
-    } elseif (strlen($geslo) < 6) {
-        $napaka = 'Geslo naj ima vsaj 6 znakov.';
-
-    } elseif ($geslo !== $geslo2) {
-        $napaka = 'Gesli se ne ujemata.';
-
-    } else {
-        try {
-            $db = db();
-
-            $st = $db->prepare(
-                'SELECT 1 FROM uporabnik
-                 WHERE uporabnisko_ime = ? OR email = ?'
-            );
-            $st->execute([$ime, $email]);
-
-            if ($st->fetch()) {
-                $napaka = 'Uporabniško ime ali e-naslov je že zaseden.';
-
-            } else {
-                // Prvi uporabnik postane skrbnik.
-                $prvi = (int)$db->query(
-                    'SELECT COUNT(*) FROM uporabnik'
-                )->fetchColumn() === 0 ? 1 : 0;
-
-                $st = $db->prepare(
-                    'INSERT INTO uporabnik
-                     (uporabnisko_ime, email, geslo_hash, je_admin, datum_registracije)
-                     VALUES (?, ?, ?, ?, ?)'
-                );
-                $st->execute([
-                    $ime,
-                    $email,
-                    password_hash($geslo, PASSWORD_DEFAULT),
-                    $prvi,
-                    time()
-                ]);
-
-                session_regenerate_id(true);
-                $_SESSION['uid'] = (int)$db->lastInsertId();
-
-                flash('ok', 'Račun je ustvarjen. Dobrodošel, ' . $ime . '!');
-                preusmeri(DOMACA);
-            }
-
-        } catch (Throwable $e) {
-            error_log($e->getMessage());
-            $napaka = 'Napaka pri ustvarjanju računa.';
+if (uporabnik()) preusmeri(DOMACA);
+$napaka=''; $ime=''; $email='';
+if ($_SERVER['REQUEST_METHOD']==='POST') {
+    preveriCsrf(); $ime=postText('uporabnisko_ime',30); $email=postText('email',254);
+    $pw=postGeslo('geslo'); $pw2=postGeslo('geslo2');
+    try {
+        omeji([['register:'.ipKljuc(),10,3600]]);
+        veljavniPodatki($ime,$email);
+        if (strcasecmp($ime,'admin')===0) throw new DomainException('Ime admin je rezervirano za glavnega skrbnika.');
+        if (strlen($pw)<10 || strlen($pw)>72) throw new DomainException('Geslo naj ima 10–72 bajtov.');
+        if ($pw!==$pw2) throw new DomainException('Gesli se ne ujemata.');
+        if (sqlVrstica('SELECT id FROM uporabnik WHERE uporabnisko_ime=? OR email=?',[$ime,$email])) throw new DomainException('Uporabniško ime ali e-naslov je že zaseden. Če račun že imaš, se prijavi.');
+        $needs=preverjanjeVklopljeno();
+        if ($needs && !postaPripravljena()) throw new DomainException('Registracija s potrditvijo trenutno ni na voljo. Skrbnik mora nastaviti pošiljanje e-pošte.');
+        izvedi('INSERT INTO uporabnik(uporabnisko_ime,email,geslo_hash,je_admin,admin_level,datum_registracije,aktiviran,email_verified) VALUES (?,?,?,0,0,?,?,0)',[$ime,$email,password_hash($pw,PASSWORD_DEFAULT),time(),$needs?0:1]);
+        $u=sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[(int)db()->lastInsertId()]);
+        if ($needs) {
+            cakajPotrditev($u);
+            try { posljiKodo($u); flash('ok','Kodo smo poslali na tvoj e-naslov.'); }
+            catch (DomainException $e) { flash('err',$e->getMessage()); }
+            preusmeri('potrditev.php');
         }
-    }
+        prijavi($u); flash('ok','Račun je ustvarjen. Dobrodošel!'); preusmeri(DOMACA);
+    } catch (DomainException $e) { $napaka=$e->getMessage(); }
+    catch (Throwable $e) { error_log('PAT.si: registracija ni uspela.'); $napaka='Računa ni bilo mogoče ustvariti. Preveri, ali že obstaja.'; }
 }
-
-glava('Registracija – pat.si');
-?>
-
-<div class="auth">
-    <h2>Ustvari račun</h2>
-
-    <?php if ($napaka !== ''): ?>
-    <div class="msg err" role="alert"><?= h($napaka) ?></div>
-    <?php endif; ?>
-
-    <form method="post" action="registracija.php">
-        <?= csrfPolje() ?>
-        <input name="uporabnisko_ime" value="<?= h($ime) ?>" placeholder="Uporabniško ime" aria-label="Uporabniško ime" required maxlength="30" autocomplete="username">
-        <input name="email" type="email" value="<?= h($email) ?>" placeholder="E-naslov" aria-label="E-naslov" required maxlength="80" autocomplete="email">
-        <input name="geslo" type="password" placeholder="Geslo (vsaj 6 znakov)" aria-label="Geslo" required minlength="6" autocomplete="new-password">
-        <input name="geslo2" type="password" placeholder="Ponovi geslo" aria-label="Ponovi geslo" required minlength="6" autocomplete="new-password">
-        <button type="submit">Registracija</button>
-    </form>
-
-    <p class="m">Že imaš račun? <a href="prijava.php">Prijavi se</a></p>
-</div>
-
+glava('Registracija – PAT.si'); ?>
+<div class="auth"><h2>Ustvari račun</h2>
+<?php if($napaka): ?><p class="msg err" role="alert"><?=h($napaka)?></p><?php endif; ?>
+<p class="m"><?=preverjanjeVklopljeno()?'Registracijo zaključiš s šestmestno kodo, ki jo prejmeš po e-pošti.':'Preverjanje e-pošte je trenutno izključeno.'?></p>
+<form method="post"><?=csrfPolje()?>
+<label>Uporabniško ime<input name="uporabnisko_ime" value="<?=h($ime)?>" required maxlength="30" autocomplete="username"></label>
+<label>E-naslov<input type="email" name="email" value="<?=h($email)?>" required maxlength="254" autocomplete="email"></label>
+<label>Geslo<input type="password" name="geslo" required minlength="10" maxlength="72" autocomplete="new-password"></label>
+<label>Ponovi geslo<input type="password" name="geslo2" required minlength="10" maxlength="72" autocomplete="new-password"></label>
+<p class="m">Uporabi dolgo geslo (najmanj 10 znakov). Skrbniki lahko zaradi podpore in moderiranja pregledajo in uredijo uporabniške podatke, oglase ter pogovore. Dostop do pogovorov se beleži.</p>
+<button>Ustvari račun</button></form><p class="m">Že imaš račun? <a href="prijava.php">Prijavi se</a></p></div>
 <?php noga(); ?>

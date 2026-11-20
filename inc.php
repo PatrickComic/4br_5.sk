@@ -4,6 +4,8 @@
    (seja, baza, uporabnik, pomožne funkcije, glava in noga strani)
    ===================================== */
 
+require_once __DIR__ . '/system.php';
+ini_set('session.cookie_secure', (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? '1' : '0');
 ini_set('session.cookie_httponly', '1');
 ini_set('session.cookie_samesite', 'Lax');
 ini_set('session.use_strict_mode', '1');
@@ -16,11 +18,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 date_default_timezone_set('Europe/Ljubljana');
 
-const DB_DATOTEKA = __DIR__ . '/pat_baza.sqlite';
+define('DB_DATOTEKA', patConfig()['database']);
 const SQL_DATOTEKA = __DIR__ . '/baza.sql';
 const DOMACA = 'pat.si.php';
 const OBVESTILA_EMAIL = 'info@pat.si';
-const SPLETNO_MESTO = 'https://pat.si'; // za povezave v e-poštnih obvestilih
+const SPLETNO_MESTO = 'https://pat.site.je'; // za povezave v e-poštnih obvestilih
 
 const KAT = [
     'Učbeniki',
@@ -85,6 +87,8 @@ function db(): PDO {
 
         // Stara povpraševanja (profil) preseli v predalnik.
         preseliPovprasevanja($db);
+        nadgradnja($db);
+        $db->exec('CREATE TABLE IF NOT EXISTS oglas_slike (naslovna TEXT PRIMARY KEY, seznam TEXT NOT NULL)');
     }
 
     return $db;
@@ -156,6 +160,11 @@ function shraniSliko(string $polje = 'slika') {
 
 function izbrisiSliko(?string $ime): void {
     if ($ime !== null && preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', $ime)) {
+        $row=sqlVrstica('SELECT seznam FROM oglas_slike WHERE naslovna=?',[$ime]);
+        foreach (json_decode($row['seznam']??'[]',true)?:[] as $f) {
+            if (is_string($f) && preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/',$f)) @unlink(MAPA_SLIK.'/'.$f);
+        }
+        izvedi('DELETE FROM oglas_slike WHERE naslovna=?',[$ime]);
         @unlink(MAPA_SLIK . '/' . $ime);
     }
 }
@@ -176,7 +185,7 @@ function csrfPolje(): string {
 }
 
 function preveriCsrf(): void {
-    if (!hash_equals($_SESSION['csrf'], (string)($_POST['csrf'] ?? ''))) {
+    if (!is_string($_POST['csrf'] ?? null) || !hash_equals($_SESSION['csrf'], $_POST['csrf'])) {
         http_response_code(400);
         exit('Neveljavna seja. Osveži stran.');
     }
@@ -204,13 +213,13 @@ function uporabnik(): ?array {
 
         if (!empty($_SESSION['uid'])) {
             $st = db()->prepare(
-                'SELECT id, uporabnisko_ime, email, je_admin, datum_registracije
+                'SELECT id, uporabnisko_ime, email, je_admin, admin_level, email_verified, aktiviran, blokiran, session_version, datum_registracije
                  FROM uporabnik WHERE id = ?'
             );
             $st->execute([(int)$_SESSION['uid']]);
             $r = $st->fetch();
 
-            if ($r) {
+            if ($r && !$r['blokiran'] && $r['aktiviran'] && isset($_SESSION['sv']) && (int)$_SESSION['sv'] === (int)$r['session_version']) {
                 $u = $r;
             } else {
                 unset($_SESSION['uid']);
@@ -310,15 +319,9 @@ function obvestiEmail(string $komu, string $od, string $oglasNaslov, int $pogovo
     $telo =
         "Novo sporočilo od {$od} (oglas: {$oglasNaslov}).\n\n" .
         "Preberi in odgovori v predalniku:\n" .
-        SPLETNO_MESTO . '/sporocila.php?id=' . $pogovorId . "\n";
+        rtrim(patConfig()['site_url'], '/') . '/sporocila.php?id=' . $pogovorId . "\n";
 
-    @mail(
-        $komu,
-        '=?UTF-8?B?' . base64_encode('pat.si – novo sporočilo') . '?=',
-        $telo,
-        'From: pat.si <' . OBVESTILA_EMAIL . ">\r\n" .
-        "Content-Type: text/plain; charset=UTF-8"
-    );
+    posljiPosto($komu, 'pat.si – novo sporočilo', $telo);
 }
 
 // Enkratna preselitev starih povpraševanj (tabela povprasevanje) v pogovore.
@@ -451,7 +454,7 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
 <title><?= h($naslov) ?></title>
 <meta name="description" content="Kupi, prodaj ali zamenjaj šolske potrebščine – nove ali rabljene.">
 <link rel="icon" href="logo.png" type="image/png">
-<link rel="stylesheet" href="stil.css">
+<link rel="stylesheet" href="stil.css?v=<?=filemtime(__DIR__.'/stil.css')?>">
 </head>
 
 <body>
@@ -482,10 +485,11 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
     </div>
 
     <nav class="nav">
+            <?php if ($u && (int)$u['admin_level'] > 0): ?><a class="btn btn-pink" href="admin.php">Skrbništvo</a><?php endif; ?>
         <?php if ($u): ?>
         <a href="sporocila.php" class="nav-msg" title="Sporočila">✉ Sporočila<?php if ($neprebrana > 0): ?> <span class="bdg"><?= $neprebrana > 99 ? '99+' : (int)$neprebrana ?></span><?php endif; ?></a>
         <a href="moj-racun.php" class="nav-user">👤 <?= h($u['uporabnisko_ime']) ?></a>
-        <a href="odjava.php" class="btn btn-ghost">Odjava</a>
+        <form method="post" action="odjava.php"><?= csrfPolje() ?><button class="btn-ghost">Odjava</button></form>
         <?php else: ?>
         <a href="prijava.php" class="btn btn-ghost">Prijava</a>
         <a href="registracija.php" class="btn">Registracija</a>
@@ -514,4 +518,91 @@ function noga(): void {
 </body>
 </html>
 <?php
+}
+
+
+function slikeOglasa(array $o): array {
+    $cover=$o['slika']??'';
+    if (!$cover) return [];
+    $row=sqlVrstica('SELECT seznam FROM oglas_slike WHERE naslovna=?',[$cover]);
+    $files=json_decode($row['seznam']??'[]',true);
+    if (!is_array($files)) $files=[];
+    return array_values(array_unique(array_filter(array_merge([$cover],$files),fn($f)=>is_string($f)&&preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/',$f))));
+}
+function shraniSlike() {
+    $original=$_FILES['slika']??null;
+    if (!$original || !is_array($original['name']??null)) return shraniSliko();
+    if (count($original['name'])>8) return 'Naloži največ 8 slik.';
+    $files=[];
+    try {
+        foreach ($original['name'] as $i=>$name) {
+            $_FILES['slika']=array_map(fn($v)=>$v[$i]??null,$original);
+            $result=shraniSliko();
+            if (is_string($result)) {
+                foreach($files as $f) izbrisiSliko($f);
+                return $result;
+            }
+            if (is_array($result)) $files[]=$result['ime'];
+        }
+        if (!$files) return null;
+        izvedi('INSERT INTO oglas_slike(naslovna,seznam) VALUES (?,?)',[$files[0],json_encode($files)]);
+        return ['ime'=>$files[0]];
+    } catch (Throwable $e) {
+        foreach($files as $f) izbrisiSliko($f);
+        throw $e;
+    } finally { $_FILES['slika']=$original; }
+}
+function prikaziOglas(int $id): void {
+    $o=sqlVrstica('SELECT o.*,u.uporabnisko_ime AS avtor FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE o.id=?',[$id]);
+    if (!$o) {http_response_code(404);glava('Oglas ni na voljo – PAT.si');echo '<div class="panel"><h2>Oglas ni na voljo</h2><p>Oglas je bil odstranjen ali ne obstaja.</p><a class="btn" href="pat.si.php">Vsi oglasi</a></div>';noga();return;}
+    $u=uporabnik();$lasten=$u&&(int)$u['id']===(int)$o['uporabnik_id'];$slike=slikeOglasa($o);
+    $pog=$u?sqlVrstica('SELECT id FROM pogovor WHERE oglas_id=? AND kupec_id=?',[$id,$u['id']]):null;
+    glava($o['naslov'].' – PAT.si'); ?>
+    <div class="oglas-back"><a href="pat.si.php">Vsi oglasi</a></div>
+    <article class="oglas-detail">
+      <div class="oglas-gallery" aria-label="Slike oglasa">
+        <div class="oglas-stage">
+        <?php if (!$slike): ?><div class="oglas-no-image">Oglas nima slike</div><?php endif; ?>
+        <?php foreach($slike as $i=>$f): ?><img class="oglas-slide" src="<?=h(URL_SLIK.$f)?>" alt="<?=h($o['naslov'])?> – slika <?=$i+1?>" <?=$i?'hidden':''?>><?php endforeach; ?>
+        <?php if(count($slike)>1): ?>
+          <button type="button" class="gallery-prev" aria-label="Prejšnja slika">‹</button><button type="button" class="gallery-next" aria-label="Naslednja slika">›</button>
+          <span class="gallery-count" aria-live="polite">1 / <?=count($slike)?></span>
+        <?php endif; ?>
+        </div>
+        <?php if(count($slike)>1): ?><div class="gallery-thumbs">
+        <?php foreach($slike as $i=>$f): ?><button type="button" class="gallery-thumb" aria-label="Prikaži sliko <?=$i+1?>" aria-pressed="<?=$i?'false':'true'?>"><img src="<?=h(URL_SLIK.$f)?>" alt="" loading="lazy"></button><?php endforeach; ?>
+        </div><button type="button" class="btn-ghost gallery-pause" aria-pressed="false">Ustavi menjavanje slik</button><?php endif; ?>
+      </div>
+      <div class="oglas-info">
+        <div class="tags"><span class="tag"><?=h($o['vrsta'])?></span><span class="tag n"><?=h($o['stanje'])?></span><span class="tag"><?=h($o['kat'])?></span></div>
+        <h2><?=h($o['naslov'])?></h2>
+        <p class="oglas-price"><?=$o['vrsta']==='Prodaja'?h(number_format((float)$o['cena'],2,',','.')).' €':'Za izmenjavo'?></p>
+        <p class="who">Objavil <strong><?=h($o['avtor'])?></strong><br><?=h(date('j. n. Y',(int)$o['ts']))?></p>
+        <section class="oglas-description"><h3>Opis oglasa</h3><p><?=trim((string)$o['opis'])!==''?nl2br(h($o['opis'])):'Prodajalec ni dodal opisa.'?></p></section>
+        <div class="oglas-actions">
+        <?php if($lasten): ?><p class="m">To je tvoj oglas.</p>
+        <?php elseif($pog): ?><a class="btn btn-pink" href="sporocila.php?id=<?=(int)$pog['id']?>">Odpri pogovor</a>
+        <?php elseif($u): ?>
+          <details><summary><?=$o['vrsta']==='Prodaja'?'Želim kupiti':'Predlagaj zamenjavo'?></summary>
+          <form method="post" action="pat.si.php"><?=csrfPolje()?><input type="hidden" name="akcija" value="povprasevanje"><input type="hidden" name="oglas_id" value="<?=$id?>">
+          <label>Sporočilo prodajalcu<textarea name="sporocilo" rows="4" maxlength="1000" placeholder="Napiši sporočilo prodajalcu" required></textarea></label><button type="submit" class="btn-pink">Pošlji sporočilo</button></form></details>
+        <?php else: ?><a class="btn btn-pink" href="prijava.php">Prijavi se za pogovor</a><?php endif; ?>
+        <?php if($u&&($lasten||smeUpravljati($u,sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[$o['uporabnik_id']])))): ?>
+          <form method="post" action="pat.si.php" onsubmit="return confirm('Res izbrišem ta oglas?')"><?=csrfPolje()?><input type="hidden" name="akcija" value="brisi"><input type="hidden" name="oglas_id" value="<?=$id?>"><button type="submit" class="btn-danger">Izbriši oglas</button></form>
+        <?php endif; ?>
+        </div>
+      </div>
+    </article>
+    <script>
+    (()=>{const g=document.querySelector('.oglas-gallery'),slides=[...g.querySelectorAll('.oglas-slide')],thumbs=[...g.querySelectorAll('.gallery-thumb')];if(slides.length<2)return;
+      let i=0,paused=false,timer;const count=g.querySelector('.gallery-count'),pause=g.querySelector('.gallery-pause');
+      function show(n){i=(n+slides.length)%slides.length;slides.forEach((s,k)=>s.hidden=k!==i);thumbs.forEach((b,k)=>b.setAttribute('aria-pressed',String(k===i)));count.textContent=`${i+1} / ${slides.length}`;}
+      function start(){clearInterval(timer);if(!paused&&!document.hidden)timer=setInterval(()=>show(i+1),5000);}
+      function move(n){show(n);start();}
+      g.querySelector('.gallery-prev').addEventListener('click',()=>move(i-1));g.querySelector('.gallery-next').addEventListener('click',()=>move(i+1));thumbs.forEach((b,k)=>b.addEventListener('click',()=>move(k)));
+      pause.addEventListener('click',()=>{paused=!paused;pause.setAttribute('aria-pressed',String(paused));pause.textContent=paused?'Nadaljuj menjavanje slik':'Ustavi menjavanje slik';start();});
+      g.addEventListener('mouseenter',()=>clearInterval(timer));g.addEventListener('mouseleave',start);g.addEventListener('focusin',()=>clearInterval(timer));g.addEventListener('focusout',()=>setTimeout(()=>{if(!g.contains(document.activeElement))start();},0));document.addEventListener('visibilitychange',start);start();
+    })();
+    </script>
+    <?php noga();
 }

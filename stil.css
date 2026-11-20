@@ -182,3 +182,32 @@ footer a{color:#fff}
 .c .slika img{width:100%;height:180px;object-fit:cover;display:block}
 .slika-polje{display:grid;gap:6px;font-size:14px;color:var(--muted)}
 .slika-polje input{width:100%}
+
+/* ---- skrbniška nadzorna plošča ---- */
+.admin-head{display:flex;justify-content:space-between;align-items:center;gap:16px;margin:28px 0 20px;flex-wrap:wrap}
+.admin-head h2{font-size:1.9rem;margin:0;color:var(--navy)}
+.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:var(--teal-d);font-weight:800;margin:0 0 5px}
+.admin-tabs{display:flex;gap:6px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:20px}
+.admin-tabs a{padding:9px 14px;border-radius:10px;text-decoration:none;color:var(--muted);font-weight:700}
+.admin-tabs a.active{background:var(--teal);color:#fff}.admin-tabs a:hover{box-shadow:0 0 0 1px var(--teal)}
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.admin-stats .panel{margin:0;display:flex;flex-direction:column;border-top:4px solid var(--teal)}
+.admin-stats strong{font-size:2.1rem;color:var(--navy)}
+.admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.admin-grid>.panel{min-width:0}
+.admin-form{display:grid;gap:12px;margin:14px 0}.admin-form label,.auth label{display:grid;gap:5px;font-size:14px;color:var(--ink);font-weight:600}
+.admin-form input,.admin-form textarea,.admin-form select{width:100%;min-width:0}
+.admin-form .check{display:flex;align-items:center;gap:10px}.check input{width:18px;flex:none;height:18px}
+.admin-form button{justify-self:start}.table-wrap{overflow:auto}.admin-table{border-collapse:collapse;width:100%;font-size:14px;text-align:left}
+.admin-table th{font-size:12px;text-transform:uppercase;letter-spacing:.03em;background:#f4f9fa;color:var(--muted)}
+.admin-table th,.admin-table td{padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.admin-table tr:hover td{background:#f8fbfc}.admin-table .btn{white-space:nowrap}
+.pagination{display:flex;gap:12px;align-items:center;justify-content:flex-end;flex-wrap:wrap;margin:20px 0;font-size:14px}
+.admin-message{border:1px solid var(--line);border-left:4px solid var(--teal);border-radius:10px;padding:14px;margin:14px 0;background:var(--bg)}
+.admin-image{max-width:100%;max-height:260px;border-radius:12px;object-fit:contain}
+hr{border:0;border-top:1px solid var(--line);margin:24px 0}.panel h3{color:var(--navy);margin-top:0}
+@media(max-width:760px){.admin-grid{grid-template-columns:1fr}.admin-stats{grid-template-columns:repeat(2,1fr)}.admin-grid>.panel{margin:5px 0}.admin-tabs a{padding:8px 10px}.admin-table th,.admin-table td{padding:9px 7px}}
+@media(max-width:360px){.g{grid-template-columns:1fr}.admin-stats{grid-template-columns:1fr}}
+
+/* Podrobni pogled oglasa in galerija */
+.c{position:relative}.oglas-open{color:inherit;text-decoration:none;position:static}.oglas-open::after{content:"";position:absolute;inset:0;z-index:1;border-radius:var(--r)}.oglas-open:focus-visible{outline:none}.oglas-open:focus-visible::after{outline:3px solid var(--teal);outline-offset:3px}.c a:not(.oglas-open),.c details,.c form{position:relative;z-index:2}.c h3 .oglas-open:hover{color:var(--teal-d)}
+.oglas-back{margin:24px 0 16px}.oglas-back a{font-weight:700}.oglas-detail{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:36px;margin-bottom:36px;align-items:start}.oglas-gallery,.oglas-info{min-width:0}.oglas-stage{position:relative;display:grid;place-items:center;aspect-ratio:1/1;background:white;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.oglas-slide{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.oglas-slide[hidden]{display:none}.oglas-no-image{color:var(--muted);padding:40px}.gallery-prev,.gallery-next{position:absolute;top:50%;transform:translateY(-50%);border-radius:50%;width:42px;height:42px;padding:0;font-size:30px;line-height:1;z-index:1;background:var(--navy)}.gallery-prev{left:12px}.gallery-next{right:12px}.gallery-count{position:absolute;bottom:12px;right:12px;background:var(--navy);color:white;padding:4px 12px;border-radius:20px;font-size:14px}.gallery-thumbs{display:flex;gap:9px;overflow-x:auto;padding:12px 2px}.gallery-thumb{flex:0 0 68px;height:68px;padding:3px;background:white;border:2px solid transparent}.gallery-thumb img{width:100%;height:100%;object-fit:cover;border-radius:6px}.gallery-thumb[aria-pressed="true"]{border-color:var(--teal)}.gallery-pause{font-size:14px}.oglas-info h2{font-size:2rem;line-height:1.2;color:var(--navy);overflow-wrap:anywhere;margin:18px 0}.oglas-price{font-size:2rem;font-weight:800;color:var(--teal-d);margin:12px 0}.oglas-description{border-top:1px solid var(--line);margin-top:24px;padding-top:18px;overflow-wrap:anywhere}.oglas-description h3{margin:0;color:var(--navy)}.oglas-actions{display:grid;gap:14px;margin-top:24px}.oglas-actions form{display:grid;gap:12px;margin-top:12px}.oglas-actions textarea{width:100%;margin-top:6px}.oglas-actions .btn{justify-self:start}
+@media(max-width:760px){.oglas-detail{grid-template-columns:1fr;gap:22px}.oglas-info h2{font-size:1.65rem}.oglas-stage{aspect-ratio:4/3}.oglas-price{font-size:1.8rem}}
