@@ -14,7 +14,7 @@ Ta različica vsebuje izvorne datoteke, prenesene z InfinityFree 20. 11. 2026.
 
 ## Namestitev
 
-Potreben je PHP 8.1 ali novejši z razširitvami PDO SQLite in OpenSSL ter spletni strežnik Apache. Datoteke prenesi v spletni koren. Kopiraj config.example.php v config.local.php in nastavi lastne podatke SMTP (STARTTLS, vrata 587). Baza pat_baza.sqlite se ustvari samodejno, obstoječa baza pa se nadgradi ob prvem dostopu. Obstoječi račun admin dobi raven 2.
+Potreben je PHP 8.1 ali novejši z razširitvami PDO SQLite in OpenSSL ter spletni strežnik Apache. Datoteke prenesi v spletni root. Kopiraj config.example.php v config.local.php in nastavi lastne podatke SMTP (STARTTLS, port 587). Baza pat_baza.sqlite se ustvari samodejno, obstoječa baza pa se nadgradi ob prvem dostopu. Obstoječi račun admin dobi raven 2.
 
 Produkcijska baza, gesla SMTP in uporabniške slike niso del repozitorija. PHPMailer je priložen v lib/PHPMailer z licenco LICENSE.
 
