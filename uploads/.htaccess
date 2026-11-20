@@ -1,12 +1,10 @@
-# Prepreči prenos baze in SQL datoteke
-<IfModule mod_authz_core.c>
-    <FilesMatch "\.(sqlite|sql|db)(-journal|-wal|-shm)?$">
+Options -Indexes
+<FilesMatch "(?i)\.(php[0-9]?|phtml|phar|cgi|pl|py|sh|shtml|sql|sqlite|db)(\..*)?$">
+    <IfModule mod_authz_core.c>
         Require all denied
-    </FilesMatch>
-</IfModule>
-<IfModule !mod_authz_core.c>
-    <FilesMatch "\.(sqlite|sql|db)(-journal|-wal|-shm)?$">
+    </IfModule>
+    <IfModule !mod_authz_core.c>
         Order allow,deny
         Deny from all
-    </FilesMatch>
-</IfModule>
+    </IfModule>
+</FilesMatch>
