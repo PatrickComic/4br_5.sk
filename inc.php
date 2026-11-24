@@ -88,6 +88,7 @@ function db(): PDO {
         // Stara povpraševanja (profil) preseli v predalnik.
         preseliPovprasevanja($db);
         nadgradnja($db);
+        nadgradnjaModeracije($db);
         $db->exec('CREATE TABLE IF NOT EXISTS oglas_slike (naslovna TEXT PRIMARY KEY, seznam TEXT NOT NULL)');
     }
 
@@ -248,7 +249,8 @@ function steviloNeprebranih(int $uid): int {
     );
     $st->execute([$uid, $uid, $uid]);
 
-    return (int)$st->fetchColumn();
+    $pogovori=(int)$st->fetchColumn();
+    return $pogovori + (int)sqlVrstica('SELECT COUNT(*) n FROM pat_obvestila WHERE uporabnik_id=? AND prebrano=0',[$uid])['n'];
 }
 
 // Vrne id pogovora za oglas in kupca (ustvari ga, če ga še ni).
@@ -430,6 +432,7 @@ function casKratko(int $ts): string {
 
 function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
     $u = uporabnik();
+    
     $f = vzemiFlash();
     $neprebrana = $u ? steviloNeprebranih((int)$u['id']) : 0;
 
@@ -454,6 +457,9 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
 <title><?= h($naslov) ?></title>
 <meta name="description" content="Kupi, prodaj ali zamenjaj šolske potrebščine – nove ali rabljene.">
 <link rel="icon" href="logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="stil.css?v=<?=filemtime(__DIR__.'/stil.css')?>">
 </head>
 
@@ -479,12 +485,13 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
         </a>
 
         <div class="tagline">
-            <h1>Šolske potrebščine na enem mestu</h1>
-            <p>Kupi, prodaj ali zamenjaj – nove ali rabljene.</p>
+            <h1>Kupi, prodaj, zamenjaj</h1>
+            <p>Zaupanja vredna trgovina.</p>
         </div>
     </div>
 
     <nav class="nav">
+        <a href="objavi.php" class="btn btn-objavi">＋ Objavi oglas</a>
             <?php if ($u && (int)$u['admin_level'] > 0): ?><a class="btn btn-pink" href="admin.php">Skrbništvo</a><?php endif; ?>
         <?php if ($u): ?>
         <a href="sporocila.php" class="nav-msg" title="Sporočila">✉ Sporočila<?php if ($neprebrana > 0): ?> <span class="bdg"><?= $neprebrana > 99 ? '99+' : (int)$neprebrana ?></span><?php endif; ?></a>
@@ -554,6 +561,8 @@ function shraniSlike() {
 }
 function prikaziOglas(int $id): void {
     $o=sqlVrstica('SELECT o.*,u.uporabnisko_ime AS avtor FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE o.id=?',[$id]);
+    $viewer=uporabnik();
+    if ($o && $o['moderacija']!=='approved' && (!$viewer || ((int)$viewer['id']!==(int)$o['uporabnik_id'] && (int)$viewer['admin_level']<1))) $o=null;
     if (!$o) {http_response_code(404);glava('Oglas ni na voljo – PAT.si');echo '<div class="panel"><h2>Oglas ni na voljo</h2><p>Oglas je bil odstranjen ali ne obstaja.</p><a class="btn" href="pat.si.php">Vsi oglasi</a></div>';noga();return;}
     $u=uporabnik();$lasten=$u&&(int)$u['id']===(int)$o['uporabnik_id'];$slike=slikeOglasa($o);
     $pog=$u?sqlVrstica('SELECT id FROM pogovor WHERE oglas_id=? AND kupec_id=?',[$id,$u['id']]):null;
@@ -576,11 +585,13 @@ function prikaziOglas(int $id): void {
       <div class="oglas-info">
         <div class="tags"><span class="tag"><?=h($o['vrsta'])?></span><span class="tag n"><?=h($o['stanje'])?></span><span class="tag"><?=h($o['kat'])?></span></div>
         <h2><?=h($o['naslov'])?></h2>
+        <?php if($o['moderacija']!=='approved'): ?><div class="msg info"><?=h(stanjeModeracije($o['moderacija']))?>. Oglas ni javno objavljen.<?php if($lasten && $o['razlog_moderacije']): ?><p><?=nl2br(h($o['razlog_moderacije']))?></p><?php endif; ?></div><?php endif; ?>
         <p class="oglas-price"><?=$o['vrsta']==='Prodaja'?h(number_format((float)$o['cena'],2,',','.')).' €':'Za izmenjavo'?></p>
         <p class="who">Objavil <strong><?=h($o['avtor'])?></strong><br><?=h(date('j. n. Y',(int)$o['ts']))?></p>
         <section class="oglas-description"><h3>Opis oglasa</h3><p><?=trim((string)$o['opis'])!==''?nl2br(h($o['opis'])):'Prodajalec ni dodal opisa.'?></p></section>
         <div class="oglas-actions">
         <?php if($lasten): ?><p class="m">To je tvoj oglas.</p>
+        <?php elseif($o['moderacija']!=='approved'): ?><p class="m">Pogovor je na voljo po odobritvi oglasa.</p>
         <?php elseif($pog): ?><a class="btn btn-pink" href="sporocila.php?id=<?=(int)$pog['id']?>">Odpri pogovor</a>
         <?php elseif($u): ?>
           <details><summary><?=$o['vrsta']==='Prodaja'?'Želim kupiti':'Predlagaj zamenjavo'?></summary>
@@ -605,4 +616,55 @@ function prikaziOglas(int $id): void {
     })();
     </script>
     <?php noga();
+}
+
+
+/* Ročni pregled oglasov in obvestila v uporabnikovem predalniku. */
+function nadgradnjaModeracije(PDO $db): void {
+    if ($db->query("SELECT vrednost FROM pat_meta WHERE kljuc='moderacija'")->fetchColumn()==='1') return;
+    $db->exec('BEGIN IMMEDIATE');
+    try {
+        if ($db->query("SELECT vrednost FROM pat_meta WHERE kljuc='moderacija'")->fetchColumn()!=='1') {
+            $cols=array_column($db->query('PRAGMA table_info(oglas)')->fetchAll(),'name');
+            foreach (['moderacija'=>"TEXT NOT NULL DEFAULT 'pending'",'razlog_moderacije'=>"TEXT NOT NULL DEFAULT ''",'pregledal_id'=>'INTEGER','pregledano_ts'=>'INTEGER'] as $name=>$def) {
+                if (!in_array($name,$cols,true)) $db->exec("ALTER TABLE oglas ADD COLUMN $name $def");
+            }
+            // Že objavljeni oglasi ob nadgradnji ostanejo javni.
+            $db->exec("UPDATE oglas SET moderacija='approved';
+                CREATE INDEX IF NOT EXISTS pat_moderacija_idx ON oglas(moderacija,ts);
+                CREATE TABLE IF NOT EXISTS pat_obvestila (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    uporabnik_id INTEGER NOT NULL REFERENCES uporabnik(id) ON DELETE CASCADE,
+                    oglas_id INTEGER REFERENCES oglas(id) ON DELETE SET NULL,
+                    naslov TEXT NOT NULL, besedilo TEXT NOT NULL, ts INTEGER NOT NULL,
+                    prebrano INTEGER NOT NULL DEFAULT 0);
+                CREATE INDEX IF NOT EXISTS pat_obvestila_uid ON pat_obvestila(uporabnik_id,prebrano,id);
+                INSERT OR REPLACE INTO pat_meta VALUES ('moderacija','1');");
+        }
+        $db->exec('COMMIT');
+    } catch(Throwable $e) { $db->exec('ROLLBACK'); throw $e; }
+}
+function stanjeModeracije(string $s): string {
+    return ['pending'=>'Čaka na pregled','approved'=>'Odobren','rejected'=>'Zavrnjen'][$s] ?? 'Čaka na pregled';
+}
+function odlociOglas(array $a): void {
+    preveriCsrf();
+    $id=(int)postText('id',20); $odlocitev=postText('odlocitev',20); $razlog=postText('razlog',1000);
+    if (!in_array($odlocitev,['approved','rejected'],true)) throw new DomainException('Izberi veljavno odločitev.');
+    if ($odlocitev==='rejected' && $razlog==='') throw new DomainException('Pri zavrnitvi napiši razlog za avtorja oglasa.');
+    $db=db(); $db->exec('BEGIN IMMEDIATE');
+    try {
+        $actor=sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[$a['id']]);
+        if (!$actor || (int)$actor['admin_level']<1 || $actor['blokiran'] || !$actor['aktiviran'] || (int)$actor['session_version']!==(int)$a['session_version']) throw new DomainException('Za pregled oglasov nimaš dovoljenja.');
+        $o=sqlVrstica('SELECT * FROM oglas WHERE id=?',[$id]);
+        if (!$o || $o['moderacija']!=='pending') throw new DomainException('Oglas ne čaka več na pregled. Osveži seznam.');
+        if (!hash_equals(hash('sha256',json_encode($o).json_encode(slikeOglasa($o))),postText('razlicica',64))) throw new DomainException('Oglas se je med pregledom spremenil. Ponovno ga odpri.');
+        izvedi('UPDATE oglas SET moderacija=?,razlog_moderacije=?,pregledal_id=?,pregledano_ts=? WHERE id=?',[$odlocitev,$razlog,$a['id'],time(),$id]);
+        $naslov=$odlocitev==='approved'?'Oglas je odobren':'Oglas je zavrnjen';
+        $telo='Tvoj oglas »'.$o['naslov'].'« je '.($odlocitev==='approved'?'odobren in je zdaj javno objavljen.':'zavrnjen in ni javno objavljen.');
+        if ($razlog!=='') $telo.="\n\n".($odlocitev==='rejected'?'Razlog: ':'Opomba skrbnika: ').$razlog;
+        izvedi('INSERT INTO pat_obvestila(uporabnik_id,oglas_id,naslov,besedilo,ts) VALUES (?,?,?,?,?)',[$o['uporabnik_id'],$id,$naslov,$telo,time()]);
+        dnevnik($a,$odlocitev==='approved'?'Odobritev oglasa':'Zavrnitev oglasa',(string)$id,$razlog);
+        $db->exec('COMMIT');
+    } catch(Throwable $e) { $db->exec('ROLLBACK'); throw $e; }
 }

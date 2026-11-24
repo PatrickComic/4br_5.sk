@@ -1,7 +1,7 @@
 <?php
 require __DIR__.'/inc.php';
 $a=skrbnik();
-$tabs=['pregled'=>'Pregled','uporabniki'=>'Uporabniki','oglasi'=>'Oglasi','pogovori'=>'Pogovori','dnevnik'=>'Dnevnik','nastavitve'=>'Nastavitve'];
+$tabs=['pregled'=>'Pregled','moderacija'=>'Pregled oglasov','uporabniki'=>'Uporabniki','oglasi'=>'Oglasi','pogovori'=>'Pogovori','dnevnik'=>'Dnevnik','nastavitve'=>'Nastavitve'];
 $tab=is_string($_GET['zavihek']??null) && isset($tabs[$_GET['zavihek']]) ? $_GET['zavihek'] : 'pregled';
 $id=max(0,is_scalar($_GET['id']??null)?(int)$_GET['id']:0); $page=max(1,min(100000,is_scalar($_GET['stran']??null)?(int)$_GET['stran']:1)); $offset=($page-1)*25;
 $q=is_string($_GET['q']??null)?(function_exists('mb_substr')?mb_substr(trim($_GET['q']),0,100):substr(trim($_GET['q']),0,100)):'';
@@ -9,7 +9,9 @@ $filter=is_string($_GET['stanje']??null)?$_GET['stanje']:'';
 $napaka='';
 if ($_SERVER['REQUEST_METHOD']==='POST') {
     try {
-        if (postText('akcija')==='test_posta') {
+        if (postText('akcija')==='moderacija') {
+            odlociOglas($a);
+        } elseif (postText('akcija')==='test_posta') {
             preveriCsrf(); omeji([['mail-test:'.$a['id'],3,3600]]);
             if (!posljiPosto($a['email'],'PAT.si – preizkus pošte','Preizkusna pošta je uspešno prispela.')) throw new DomainException('Pošiljanje ni uspelo. Preveri nastavitve SMTP.');
             dnevnik($a,'Preizkus pošte',(string)$a['id']);
@@ -57,12 +59,28 @@ $stats=[
  'Uporabniki'=>sqlVrstica("SELECT COUNT(*) n FROM uporabnik u WHERE $userScope")['n'],
  'Čakajo na aktivacijo'=>sqlVrstica("SELECT COUNT(*) n FROM uporabnik u WHERE $userScope AND aktiviran=0")['n'],
  'Blokirani računi'=>sqlVrstica("SELECT COUNT(*) n FROM uporabnik u WHERE $userScope AND blokiran=1")['n'],
+ 'Čakajoči oglasi'=>sqlVrstica("SELECT COUNT(*) n FROM oglas WHERE moderacija='pending'")['n'],
  'Oglasi'=>sqlVrstica("SELECT COUNT(*) n FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE $postScope")['n'],
  'Pogovori'=>sqlVrstica("SELECT COUNT(*) n FROM pogovor p JOIN uporabnik k ON k.id=p.kupec_id JOIN uporabnik s ON s.id=p.prodajalec_id WHERE $convScope")['n'],
  'Sporočila'=>sqlVrstica("SELECT COUNT(*) n FROM sporocilo m JOIN pogovor p ON p.id=m.pogovor_id JOIN uporabnik k ON k.id=p.kupec_id JOIN uporabnik s ON s.id=p.prodajalec_id WHERE $convScope")['n']]; ?>
 <div class="admin-stats"><?php foreach($stats as $label=>$n): ?><article class="panel"><span class="m"><?=h($label)?></span><strong><?=(int)$n?></strong></article><?php endforeach; ?></div>
-<div class="admin-grid"><section class="panel"><h3>Hitri dostop</h3><p>Preišči račune, popravi oglase ali preglej pogovore brez spreminjanja njihovega stanja prebranosti.</p><p><a class="btn" href="?zavihek=uporabniki">Uporabniki</a> <a class="btn btn-pink" href="?zavihek=oglasi">Oglasi</a></p></section><section class="panel"><h3>Stanje sistema</h3><p>Preverjanje e-pošte: <strong><?=preverjanjeVklopljeno()?'vključeno':'izključeno'?></strong><br>Pošiljanje: <strong><?=postaPripravljena()?'SMTP nastavljen (dostavo preveri s preizkusom)':'ni nastavljeno'?></strong><br>Različica podatkovne sheme: 2</p><a href="?zavihek=nastavitve">Uredi nastavitve →</a></section></div>
+<section class="panel"><h3>Stanje sistema</h3><p>Preverjanje e-pošte: <strong><?=preverjanjeVklopljeno()?'vključeno':'izključeno'?></strong><br>Pošiljanje: <strong><?=postaPripravljena()?'SMTP nastavljen (dostavo preveri s preizkusom)':'ni nastavljeno'?></strong><br>Različica podatkovne sheme: 2</p><a href="?zavihek=nastavitve">Uredi nastavitve →</a></section>
 <section class="panel"><h3>Pravila dostopa</h3><p>Raven 1 upravlja samo račune ravni 0 in njihove oglase. Pogovori s skrbniki so zaščiteni. Raven 2 lahko upravlja tudi skrbnike, vendar glavnega računa admin ni mogoče izbrisati, preimenovati ali znižati. Vsaka sprememba in vsak skrbniški vpogled v pogovor se zabeleži.</p><p class="m">Gesla so shranjena kot enosmerne zgoščene vrednosti. Izvirnih gesel ni mogoče prikazati. Uporabi ponastavitev gesla; zgoščenih gesel in potrditvenih kod ne prikazujemo.</p></section>
+<?php elseif($tab==='moderacija'):
+$where="o.moderacija='pending' AND (o.naslov LIKE ? OR o.opis LIKE ? OR u.uporabnisko_ime LIKE ?)";
+$params=array_fill(0,3,'%'.$q.'%');
+$total=(int)sqlVrstica("SELECT COUNT(*) n FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE $where",$params)['n'];
+$rows=sqlVse("SELECT o.*,u.uporabnisko_ime avtor FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE $where ORDER BY o.ts,o.id LIMIT 25 OFFSET $offset",$params); ?>
+<section class="panel"><h2>Pregled oglasov (<?=$total?>)</h2><p>Pred odločitvijo preglej naslov, opis, kategorijo in vse slike. Dovoljene so šolske potrebščine in povezana oprema. Oglasi z neprimerno vsebino ali nepovezanimi predmeti se zavrnejo. Avtor odločitev prejme v sporočilih.</p></section>
+<form class="search" method="get"><input type="hidden" name="zavihek" value="moderacija"><input name="q" value="<?=h($q)?>" placeholder="Naslov, opis ali avtor" aria-label="Iskanje čakajočih oglasov"><button>Išči</button></form>
+<?php if(!$rows): ?><section class="panel"><p>Ni oglasov, ki čakajo na pregled.</p></section><?php endif; ?>
+<?php foreach($rows as $o): $original=sqlVrstica('SELECT * FROM oglas WHERE id=?',[$o['id']]); if(!$original || $original['moderacija']!=='pending') continue; $slike=slikeOglasa($original); ?>
+<article class="panel pregled-oglasa"><h3>#<?=(int)$o['id']?> <?=h($o['naslov'])?></h3><p class="m">Avtor: <?=h($o['avtor'])?> · <?=h(adminDatum($o['ts']))?></p><p><?=h($o['vrsta'])?> · <?=h($o['kat'])?> · <?=h($o['stanje'])?> · <?=h(number_format((float)$o['cena'],2,',','.'))?> €</p><h4>Opis</h4><p><?=nl2br(h($o['opis']))?></p>
+<div class="moderacija-slike"><?php foreach($slike as $i=>$slika): ?><a href="<?=h(URL_SLIK.$slika)?>" target="_blank" rel="noopener"><img src="<?=h(URL_SLIK.$slika)?>" alt="Slika <?=$i+1?> oglasa <?=h($o['naslov'])?>" loading="lazy"></a><?php endforeach; ?></div><?php if(!$slike): ?><p class="m">Oglas nima slik.</p><?php endif; ?>
+<p><a href="pat.si.php?oglas=<?=(int)$o['id']?>" target="_blank" rel="noopener">Odpri celoten oglas</a></p>
+<?php adminForm('moderacija',(int)$o['id']); ?><input type="hidden" name="razlicica" value="<?=h(hash('sha256',json_encode($original).json_encode($slike)))?>"><label>Razlog zavrnitve oziroma neobvezna opomba avtorju<textarea name="razlog" maxlength="1000" rows="3"></textarea></label><div class="moderacija-gumbi"><button name="odlocitev" value="approved">Odobri oglas</button><button class="btn-danger" name="odlocitev" value="rejected" onclick="const t=this.form.elements.razlog;if(!t.value.trim()){alert('Napiši razlog zavrnitve.');t.focus();return false;}t.setCustomValidity('');">Zavrni oglas</button></div></form>
+</article><?php endforeach; ?>
+<?php strani($total,$page,$tab,$q); ?>
 <?php elseif($tab==='uporabniki' && $id):
 try { $u=preveriCilj($a,$id); } catch(DomainException $e) { echo '<p class="msg err">'.h($e->getMessage()).'</p>'; noga(); exit; }
 $posts=sqlVse('SELECT id,naslov,vrsta,cena,ts FROM oglas WHERE uporabnik_id=? ORDER BY id DESC LIMIT 25',[$id]);

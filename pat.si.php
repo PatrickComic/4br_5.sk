@@ -4,7 +4,6 @@ require __DIR__ . '/inc.php';
 $db = db();
 $u = uporabnik();
 $napaka = '';
-$odpriObrazec = false;
 
 /* =====================================
    OBDELAVA OBRAZCEV (le za prijavljene)
@@ -26,91 +25,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $akcija = (string)($_POST['akcija'] ?? '');
 
     /* ---------------------------------
-       OBJAVA OGLASA
-       Ime in e-naslov vzame iz računa.
-       --------------------------------- */
-
-    if ($akcija === 'oglas') {
-
-        $naslov = postText('naslov', 80);
-        $opis = postText('opis', 300);
-
-        $vrsta = in_array($_POST['vrsta'] ?? '', VRSTE, true)
-            ? $_POST['vrsta'] : 'Prodaja';
-
-        $kat = in_array($_POST['kat'] ?? '', KAT, true)
-            ? $_POST['kat'] : 'Ostalo';
-
-        $stanje = in_array($_POST['stanje'] ?? '', STANJA, true)
-            ? $_POST['stanje'] : 'Rabljeno';
-
-        $cena = 0.0;
-
-        if ($naslov === '') {
-            $napaka = 'Naslov oglasa je obvezen.';
-
-        } elseif ($vrsta === 'Prodaja') {
-            $cenaVnos = str_replace(',', '.', (string)($_POST['cena'] ?? '0'));
-
-            if (!is_numeric($cenaVnos)
-                || (float)$cenaVnos < 0
-                || (float)$cenaVnos > 100000) {
-                $napaka = 'Vnesi veljavno ceno.';
-            } else {
-                $cena = (float)$cenaVnos;
-            }
-        }
-
-        $slika = null;
-
-        if ($napaka === '') {
-            $rez = shraniSlike();
-
-            if (is_string($rez)) {
-                $napaka = $rez;
-            } elseif (is_array($rez)) {
-                $slika = $rez['ime'];
-            }
-        }
-
-        if ($napaka === '') {
-            try {
-                $st = $db->prepare(
-                    'INSERT INTO oglas
-                     (uporabnik_id, naslov, vrsta, kat, stanje, cena, opis, ts, slika)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-                );
-                $st->execute([
-                    (int)$u['id'],
-                    $naslov,
-                    $vrsta,
-                    $kat,
-                    $stanje,
-                    $cena,
-                    $opis,
-                    time(),
-                    $slika
-                ]);
-
-                flash('ok', 'Oglas je uspešno objavljen!');
-                preusmeri(DOMACA);
-
-            } catch (Throwable $e) {
-                izbrisiSliko($slika);
-                error_log($e->getMessage());
-                $napaka = 'Napaka pri shranjevanju oglasa.';
-            }
-        }
-
-        $odpriObrazec = true;
-    }
-
-    /* ---------------------------------
        SPOROČILO PRODAJALCU
        Ustvari (ali nadaljuje) pogovor v predalniku.
        --------------------------------- */
 
-    elseif ($akcija === 'povprasevanje') {
+    if ($akcija === 'povprasevanje') {
 
         $id = (int)($_POST['oglas_id'] ?? 0);
         $sp = postText('sporocilo', 1000);
@@ -119,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'SELECT o.id, o.uporabnik_id, o.naslov, p.email AS prodajalec_email
              FROM oglas o
              JOIN uporabnik p ON p.id = o.uporabnik_id
-             WHERE o.id = ?'
+             WHERE o.id = ? AND o.moderacija = \'approved\''
         );
         $st->execute([$id]);
         $oglas = $st->fetch();
@@ -239,7 +158,7 @@ $fv = (string)($_GET['vrsta'] ?? '');
 $sql = 'SELECT o.*, a.uporabnisko_ime AS avtor
         FROM oglas o
         JOIN uporabnik a ON a.id = o.uporabnik_id
-        WHERE 1=1';
+        WHERE o.moderacija = \'approved\'';
 $params = [];
 
 if ($q !== '') {
@@ -320,49 +239,7 @@ glava();
     <button type="submit">Išči</button>
 </form>
 
-<?php if ($u): ?>
-<details class="add" <?= $odpriObrazec ? 'open' : '' ?>>
-<summary>+ Objavi oglas</summary>
-
-<form method="post" action="<?= h(DOMACA) ?>" enctype="multipart/form-data">
-    <?= csrfPolje() ?>
-    <input type="hidden" name="akcija" value="oglas">
-
-    <p class="m full">Objavljaš kot <strong><?= h($u['uporabnisko_ime']) ?></strong> (<?= h($u['email']) ?>).</p>
-
-    <input class="full" name="naslov" value="<?= h($_POST['naslov'] ?? '') ?>" placeholder="Naslov oglasa" aria-label="Naslov oglasa" required maxlength="80">
-
-    <select name="vrsta" aria-label="Vrsta oglasa">
-        <?php foreach (VRSTE as $k): ?>
-        <option value="<?= h($k) ?>"><?= h($k) ?></option>
-        <?php endforeach; ?>
-    </select>
-
-    <select name="kat" aria-label="Kategorija">
-        <?php foreach (KAT as $k): ?>
-        <option value="<?= h($k) ?>"><?= h($k) ?></option>
-        <?php endforeach; ?>
-    </select>
-
-    <select name="stanje" aria-label="Stanje">
-        <?php foreach (STANJA as $k): ?>
-        <option value="<?= h($k) ?>"><?= h($k) ?></option>
-        <?php endforeach; ?>
-    </select>
-
-    <input name="cena" type="number" min="0" step="0.01" value="<?= h($_POST['cena'] ?? '0') ?>" placeholder="Cena v € (le pri prodaji)" aria-label="Cena v €">
-
-    <textarea class="full" name="opis" rows="3" maxlength="300" placeholder="Opis ali kaj iščeš v zameno" aria-label="Opis"><?= h($_POST['opis'] ?? '') ?></textarea>
-
-    <label class="full slika-polje">
-        <span>📷 Slike (največ 8, JPG/PNG/WebP, vsaka do 5 MB)</span>
-        <input type="file" name="slika[]" multiple accept="image/jpeg,image/png,image/webp" onchange="if(this.files.length>8||Array.from(this.files).some(f=>f.size>5242880)){alert('Naloži največ 8 slik, vsaka do 5 MB.');this.value='';}">
-    </label>
-
-    <button class="full" type="submit">Objavi oglas</button>
-</form>
-</details>
-<?php else: ?>
+<?php if (!$u): ?>
 <div class="hint">
     <strong>Želiš objaviti oglas ali poslati sporočilo prodajalcu?</strong>
     <a href="prijava.php">Prijavi se</a> ali

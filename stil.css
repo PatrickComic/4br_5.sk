@@ -5,7 +5,7 @@
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+body{margin:0;font:16px/1.6 "Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;background:var(--bg);color:var(--ink);min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
 a{color:var(--teal-d)}
 .w{max-width:1100px;margin:auto;padding:0 20px}
 main.w{flex:1 0 auto;width:100%;margin:0 auto}
@@ -211,3 +211,186 @@ hr{border:0;border-top:1px solid var(--line);margin:24px 0}.panel h3{color:var(-
 .c{position:relative}.oglas-open{color:inherit;text-decoration:none;position:static}.oglas-open::after{content:"";position:absolute;inset:0;z-index:1;border-radius:var(--r)}.oglas-open:focus-visible{outline:none}.oglas-open:focus-visible::after{outline:3px solid var(--teal);outline-offset:3px}.c a:not(.oglas-open),.c details,.c form{position:relative;z-index:2}.c h3 .oglas-open:hover{color:var(--teal-d)}
 .oglas-back{margin:24px 0 16px}.oglas-back a{font-weight:700}.oglas-detail{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);gap:36px;margin-bottom:36px;align-items:start}.oglas-gallery,.oglas-info{min-width:0}.oglas-stage{position:relative;display:grid;place-items:center;aspect-ratio:1/1;background:white;border:1px solid var(--line);border-radius:var(--r);overflow:hidden}.oglas-slide{width:100%;height:100%;object-fit:contain;position:absolute;inset:0}.oglas-slide[hidden]{display:none}.oglas-no-image{color:var(--muted);padding:40px}.gallery-prev,.gallery-next{position:absolute;top:50%;transform:translateY(-50%);border-radius:50%;width:42px;height:42px;padding:0;font-size:30px;line-height:1;z-index:1;background:var(--navy)}.gallery-prev{left:12px}.gallery-next{right:12px}.gallery-count{position:absolute;bottom:12px;right:12px;background:var(--navy);color:white;padding:4px 12px;border-radius:20px;font-size:14px}.gallery-thumbs{display:flex;gap:9px;overflow-x:auto;padding:12px 2px}.gallery-thumb{flex:0 0 68px;height:68px;padding:3px;background:white;border:2px solid transparent}.gallery-thumb img{width:100%;height:100%;object-fit:cover;border-radius:6px}.gallery-thumb[aria-pressed="true"]{border-color:var(--teal)}.gallery-pause{font-size:14px}.oglas-info h2{font-size:2rem;line-height:1.2;color:var(--navy);overflow-wrap:anywhere;margin:18px 0}.oglas-price{font-size:2rem;font-weight:800;color:var(--teal-d);margin:12px 0}.oglas-description{border-top:1px solid var(--line);margin-top:24px;padding-top:18px;overflow-wrap:anywhere}.oglas-description h3{margin:0;color:var(--navy)}.oglas-actions{display:grid;gap:14px;margin-top:24px}.oglas-actions form{display:grid;gap:12px;margin-top:12px}.oglas-actions textarea{width:100%;margin-top:6px}.oglas-actions .btn{justify-self:start}
 @media(max-width:760px){.oglas-detail{grid-template-columns:1fr;gap:22px}.oglas-info h2{font-size:1.65rem}.oglas-stage{aspect-ratio:4/3}.oglas-price{font-size:1.8rem}}
+
+/* Pregled oglasov in cena v evrih */
+.cena-polje{position:relative;display:flex;align-items:center;margin:0;min-width:0}
+.cena-polje input{width:100%;padding-right:3.5rem;margin:0}
+.cena-valuta{position:absolute;right:1.5rem;font-weight:700;pointer-events:none}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.moderacija-slike{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:18px 0}
+.moderacija-slike a{display:block;background:#f4f5fa;border-radius:12px;overflow:hidden}
+.moderacija-slike img{width:100%;height:230px;object-fit:contain;display:block}
+.moderacija-gumbi{display:flex;gap:12px;flex-wrap:wrap}
+.status-pending{background:#fff0c2;color:#6b4a00}.status-approved{background:#d9f5e5;color:#14532d}.status-rejected{background:#ffe0e6;color:#881337}
+.obvestilo-novo{border-left:4px solid var(--pink,#e85e96);padding-left:16px}
+.obvestila>form{margin-bottom:16px}.obvestila article p{overflow-wrap:anywhere}
+
+/* =====================================================================
+   PREMIUM VIDEZ – samo vizualna plast (barve, postavitev in funkcije
+   ostanejo enake). Vse je zbrano na enem mestu, da se zlahka prilagodi.
+   ===================================================================== */
+:root{
+  --navy-d:#071c3b; --teal-l:#2bb5bb; --pink-d:#f4708c;
+  --line:rgba(11,42,85,.10); --line-s:rgba(11,42,85,.07);
+  --sh-s:0 1px 2px rgba(11,42,85,.04),0 6px 18px -8px rgba(11,42,85,.10);
+  --sh-m:0 2px 4px rgba(11,42,85,.04),0 18px 40px -16px rgba(11,42,85,.20);
+  --ring:0 0 0 4px rgba(10,145,153,.16);
+}
+::selection{background:rgba(10,145,153,.22);color:var(--navy)}
+body{
+  background:var(--bg);
+  letter-spacing:-.005em;
+}
+h1,h2,h3{letter-spacing:-.02em}
+:focus-visible{outline:3px solid rgba(10,145,153,.4);outline-offset:2px}
+
+/* ---- glava ---- */
+.top{position:relative;background:rgba(255,255,255,.84);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--line)}
+.top .hw{padding-top:16px;padding-bottom:17px}
+.logo img{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+.tagline h1{font-size:1.5rem;font-weight:800;letter-spacing:-.03em;color:var(--navy)}
+.tagline p{font-size:.95rem;font-weight:500}
+.nav{gap:8px}
+.nav-user,.nav-msg{font-weight:600;font-size:.95rem;padding:8px 13px;border-radius:10px;transition:background .15s,color .15s}
+.nav-user:hover,.nav-msg:hover{background:rgba(10,145,153,.08);text-decoration:none;color:var(--teal-d)}
+
+/* ---- obrazci ---- */
+input,select,textarea{background:#fbfdfd;border-color:var(--line);transition:border-color .15s,box-shadow .15s,background .15s}
+input:hover,select:hover,textarea:hover{border-color:#c9d8de}
+input:focus,select:focus,textarea:focus{outline:none;background:#fff;border-color:var(--teal);box-shadow:var(--ring)}
+::placeholder{color:#8a97a6}
+
+/* ---- gumbi ---- */
+button:where(:not(.btn-ghost,.toast-x,.gallery-thumb,.btn-pink,.btn-danger)),
+.btn:where(:not(.btn-ghost,.btn-pink,.btn-danger)){
+  background-image:linear-gradient(180deg,var(--teal-l) 0%,var(--teal) 55%,var(--teal-d) 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 1px 2px rgba(7,122,129,.35),0 8px 18px -8px rgba(10,145,153,.65);
+  letter-spacing:.005em;
+  transition:transform .15s,box-shadow .2s,filter .15s;
+}
+button:where(:not(.btn-ghost,.toast-x,.gallery-thumb,.btn-pink,.btn-danger)):hover,
+.btn:where(:not(.btn-ghost,.btn-pink,.btn-danger)):hover{background-color:var(--teal-d);transform:translateY(-1px);filter:brightness(1.04);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 4px rgba(7,122,129,.35),0 12px 22px -8px rgba(10,145,153,.7)}
+button:active,.btn:active{transform:translateY(0)!important;filter:none}
+.btn-pink{background:linear-gradient(180deg,#fda1b5 0%,var(--pink) 55%,var(--pink-d) 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 1px 2px rgba(180,50,90,.3),0 8px 18px -8px rgba(244,112,140,.75);transition:transform .15s,box-shadow .2s,filter .15s}
+.btn-pink:hover{background:linear-gradient(180deg,#fda1b5 0%,var(--pink) 55%,var(--pink-d) 100%);transform:translateY(-1px);filter:brightness(1.03)}
+.btn-ghost{background:#fff;color:var(--navy);border:1px solid var(--line);font-weight:600;box-shadow:0 1px 2px rgba(11,42,85,.04);transition:background .15s,border-color .15s,transform .15s}
+.btn-ghost:hover{background:#f3f8f9;border-color:#c9d8de;transform:translateY(-1px)}
+.btn-danger{background:linear-gradient(180deg,#d33a3a 0%,#b91c1c 60%,#991b1b 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 8px 18px -8px rgba(185,28,28,.6)}
+.btn-danger:hover{background:linear-gradient(180deg,#d33a3a 0%,#b91c1c 60%,#991b1b 100%);filter:brightness(1.05)}
+
+/* ---- iskalnik in obrazec za oglas ---- */
+.search{background-image:linear-gradient(180deg,#17457f 0%,var(--navy) 60%,var(--navy-d) 100%);color:#fff;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(7,28,59,.4),0 8px 18px -8px rgba(11,42,85,.7);border-color:var(--line-s);box-shadow:var(--sh-m);padding:16px;gap:10px}
+details.add{border:1.5px dashed rgba(10,145,153,.55);background:linear-gradient(180deg,#fff,#f5fbfb);box-shadow:var(--sh-s);transition:border-color .2s,box-shadow .2s}
+details.add:hover,details.add[open]{border-color:var(--teal);box-shadow:var(--sh-m)}
+details.add>summary{letter-spacing:-.01em}
+.hint{border:1.5px dashed rgba(10,145,153,.55);background:linear-gradient(180deg,#fff,#f5fbfb)}
+.msg{border-radius:12px;font-weight:500}
+
+/* ---- kartice oglasov ---- */
+.c,.c.izm{border-color:var(--line-s);border-top-width:2px;box-shadow:var(--sh-s);transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s,border-color .25s}
+.c:hover,.c:focus-within{transform:translateY(-4px);box-shadow:var(--sh-m);border-top-color:var(--teal)}
+.c.izm:hover,.c.izm:focus-within{border-top-color:var(--pink)}
+.c h3{font-weight:700;letter-spacing:-.015em;line-height:1.3}
+.c .slika{background:linear-gradient(135deg,#eef6f7,#f7fafb)}
+.c .slika img{transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+.c:hover .slika img{transform:scale(1.04)}
+.tag{font-weight:600;letter-spacing:.01em;padding:3px 11px}
+.price{font-weight:800;letter-spacing:-.025em;font-variant-numeric:tabular-nums}
+.desc{line-height:1.55}
+.count{font-weight:500}
+.empty{border-radius:var(--r);background:linear-gradient(180deg,#fff,#f8fbfc)}
+
+/* ---- prijava, račun, plošče ---- */
+.auth,.panel{border-color:var(--line-s);box-shadow:var(--sh-m)}
+.auth{padding:28px;border-top-width:2px}
+.auth h2,.panel h2{font-weight:800;letter-spacing:-.025em}
+.panel{box-shadow:var(--sh-s)}
+.inq{background:linear-gradient(90deg,#fff3f6,#fff9fb)}
+.badge{background:linear-gradient(180deg,#123a73,var(--navy));letter-spacing:.01em}
+.bdg{background:linear-gradient(180deg,#f0407b,#d81e57);box-shadow:0 2px 6px rgba(224,36,94,.4)}
+
+/* ---- obvestilo ---- */
+.toast{border-color:var(--line-s);box-shadow:0 2px 6px rgba(11,42,85,.06),0 24px 48px -12px rgba(11,42,85,.30)}
+.toast-bar{background:linear-gradient(90deg,var(--teal),var(--teal-l))}
+.toast-err .toast-bar{background:linear-gradient(90deg,#b91c1c,#e04848)}
+.toast-del .toast-bar{background:linear-gradient(90deg,var(--pink-d),var(--pink))}
+
+/* ---- predalnik ---- */
+.inbox{border-color:var(--line-s);box-shadow:var(--sh-m)}
+.conv{transition:background .15s}
+.conv.act{background:linear-gradient(90deg,#e0f1f2,#edf7f8);box-shadow:inset 3px 0 0 var(--teal)}
+.av{background:linear-gradient(135deg,var(--teal-l),var(--teal-d));box-shadow:0 4px 10px -4px rgba(10,145,153,.6)}
+.msgs{background:linear-gradient(180deg,#f8fbfc,#f2f8f9)}
+.bub{line-height:1.45}
+.bub.me{background:linear-gradient(180deg,#10a5ad,var(--teal-d));box-shadow:0 4px 12px -6px rgba(7,122,129,.6)}
+.bub.them{background:#fff;border:1px solid var(--line-s);box-shadow:0 1px 2px rgba(11,42,85,.04)}
+.reply textarea{background:#f6fafb}
+
+/* ---- podrobnosti oglasa ---- */
+.oglas-stage{border-color:var(--line-s);box-shadow:var(--sh-m)}
+.gallery-prev,.gallery-next{background:rgba(7,28,59,.82);backdrop-filter:blur(6px);box-shadow:0 6px 16px -6px rgba(7,28,59,.6);transition:background .15s,transform .15s}
+.gallery-prev:hover,.gallery-next:hover{background:var(--navy-d)}
+.gallery-count{background:rgba(7,28,59,.82);backdrop-filter:blur(6px);font-weight:600;font-size:13px}
+.gallery-thumb{border-radius:10px;transition:border-color .15s}
+.oglas-info h2{font-weight:800;letter-spacing:-.03em}
+.oglas-price{font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+
+/* ---- skrbništvo ---- */
+.admin-head h2{font-weight:800;letter-spacing:-.03em}
+.admin-tabs a{transition:background .15s,color .15s}
+.admin-tabs a.active{background:linear-gradient(180deg,var(--teal-l),var(--teal-d));box-shadow:0 6px 14px -8px rgba(10,145,153,.7)}
+.admin-stats .panel{border-top-width:2px;background:linear-gradient(180deg,#fff,#f8fcfc)}
+.admin-stats strong{font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.admin-table th{background:#f3f8f9;font-weight:700}
+.admin-message{background:linear-gradient(180deg,#fff,#f8fbfc)}
+
+/* ---- noga ---- */
+footer{background:linear-gradient(180deg,#17457f 0%,var(--navy) 60%,var(--navy-d) 100%);color:#c3d0e3;border-top:1px solid rgba(255,255,255,.08);font-size:13px}
+footer a{color:#fff;font-weight:600;text-decoration:none}
+footer a:hover{text-decoration:underline;text-underline-offset:3px}
+
+/* ---- drsnik ---- */
+*{scrollbar-width:thin;scrollbar-color:#c3d3d9 transparent}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation-duration:.01ms!important}
+  .c:hover,.c:hover .slika img{transform:none}
+}
+
+/* ---- izbris računa ---- */
+.panel-danger{border-color:rgba(185,28,28,.18)}
+.izbris-racuna{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.izbris-racuna input{flex:1 1 240px}
+hr{border-top:1px solid var(--line)}
+.top .hw{padding-top:14px;padding-bottom:14px}
+
+/* ---- gumb »Objavi oglas« v glavi ---- */
+.btn.btn-objavi{background-image:linear-gradient(180deg,#17457f 0%,var(--navy) 60%,var(--navy-d) 100%);color:#fff;white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 1px 2px rgba(7,28,59,.4),0 8px 18px -8px rgba(11,42,85,.7)}
+.btn.btn-objavi:hover{background-color:var(--navy-d);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 2px 4px rgba(7,28,59,.4),0 12px 22px -8px rgba(11,42,85,.8)}
+
+/* ---- stran za objavo oglasa (kot podrobni pogled oglasa) ---- */
+.objavi [hidden]{display:none!important}
+.objavi .oglas-stage{border:1.5px dashed rgba(10,145,153,.5);background:linear-gradient(180deg,#fff,#f5fbfb)}
+.objavi .oglas-stage:has(.oglas-slide:not([hidden])){border-style:solid;border-color:var(--line-s);background:#fff}
+.drop{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:6px;padding:24px;text-align:center;cursor:pointer;transition:background .2s}
+.drop:hover{background:rgba(10,145,153,.05)}
+.drop:has(input:focus-visible){outline:3px solid rgba(10,145,153,.4);outline-offset:-6px;border-radius:var(--r)}
+.drop-ico{font-size:2.6rem;line-height:1}
+.drop strong{color:var(--navy);font-size:1.1rem}
+.objavi #zamenjaj{margin-top:6px;cursor:pointer}
+.objavi .oglas-info h2{margin:4px 0 18px}
+.objavi-polja{display:grid;gap:16px}
+.polje{display:grid;gap:6px;min-width:0}
+.polje-l{font-size:13px;font-weight:700;color:var(--navy)}
+.polje input,.polje select,.polje textarea{width:100%}
+.polje-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opis-st{text-align:right;font-weight:400}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:#e8f0f2;border-radius:12px}
+.seg label{position:relative;display:block;text-align:center;padding:9px 12px;border-radius:9px;font-weight:600;color:var(--muted);cursor:pointer;transition:background .15s,color .15s,box-shadow .15s}
+.seg input{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+.seg label:has(input:checked){background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(11,42,85,.15)}
+.seg label:has(input:focus-visible){outline:3px solid rgba(10,145,153,.4);outline-offset:1px}
+.objavi-gumbi{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.objavi-gumbi button{flex:1 1 220px;padding:13px 18px}
+@media(max-width:760px){.polje-2{grid-template-columns:1fr}.objavi .oglas-stage{aspect-ratio:4/3}}
+@media(max-width:600px){.btn.btn-objavi{padding:9px 12px}}

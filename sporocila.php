@@ -18,6 +18,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     preveriCsrf();
 
+    if (postText('akcija')==='preberi_obvestila') {
+        izvedi('UPDATE pat_obvestila SET prebrano=1 WHERE uporabnik_id=?',[$uid]);
+        preusmeri('sporocila.php');
+    }
+
     $pid = (int)($_POST['pogovor_id'] ?? 0);
     $besedilo = postText('besedilo', 1000);
 
@@ -126,6 +131,7 @@ if ($trenutni) {
     $sporocila = $st->fetchAll();
 }
 
+$obvestila=sqlVse('SELECT * FROM pat_obvestila WHERE uporabnik_id=? ORDER BY prebrano ASC,id DESC LIMIT 50',[$uid]);
 glava('Sporočila – pat.si');
 ?>
 
@@ -242,4 +248,10 @@ glava('Sporočila – pat.si');
     </section>
 </div>
 
+<?php if($obvestila): ?>
+<section class="panel obvestila" aria-label="Obvestila o oglasih"><h2>Obvestila o oglasih</h2>
+<form method="post" action="sporocila.php"><?=csrfPolje()?><input type="hidden" name="akcija" value="preberi_obvestila"><button class="btn-ghost">Označi obvestila kot prebrana</button></form>
+<?php foreach($obvestila as $ob): ?><article class="admin-message <?=$ob['prebrano']?'':'obvestilo-novo'?>"><h3><?=h($ob['naslov'])?> <?php if(!$ob['prebrano']): ?><span class="badge">Novo</span><?php endif; ?></h3><p class="m"><?=h(date('j. n. Y H:i',(int)$ob['ts']))?> · Skrbništvo PAT.si</p><p><?=nl2br(h($ob['besedilo']))?></p><?php if($ob['oglas_id']): ?><a href="pat.si.php?oglas=<?=(int)$ob['oglas_id']?>">Odpri svoj oglas</a><?php endif; ?></article><?php endforeach; ?>
+</section>
+<?php endif; ?>
 <?php noga(); ?>
