@@ -103,11 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['akcija'] = 'izbrisi_oglas'; $_POST['id'] = (string)$id;
             try { adminDejanje($u); flash('del', 'Oglas je izbrisan.'); }
             catch (Throwable $e) { flash('err', 'Oglasa ni mogoče izbrisati ali nimaš dovoljenja.'); }
-            preusmeri(($_POST['nazaj'] ?? '') === 'moj-racun' ? 'moj-racun.php' : DOMACA);
+            preusmeri(($_POST['nazaj'] ?? '') === 'moj-racun' ? '/profil' : DOMACA);
         }
 
         // Kam se vrnemo po brisanju (le dovoljene strani).
-        $nazaj = ($_POST['nazaj'] ?? '') === 'moj-racun' ? 'moj-racun.php' : DOMACA;
+        $nazaj = ($_POST['nazaj'] ?? '') === 'moj-racun' ? '/profil' : DOMACA;
 
         $st = $db->prepare('SELECT uporabnik_id, naslov, slika FROM oglas WHERE id = ?');
         $st->execute([$id]);
@@ -256,8 +256,8 @@ glava();
 <?php if (!$u): ?>
 <div class="hint">
     <strong>Želiš objaviti oglas ali poslati sporočilo prodajalcu?</strong>
-    <a href="prijava.php">Prijavi se</a> ali
-    <a href="registracija.php">ustvari račun</a> –
+    <a href="/prijava">Prijavi se</a> ali
+    <a href="/registracija">ustvari račun</a> –
     ime in e-naslov se izpolnita samodejno.
 </div>
 <?php endif; ?>
@@ -285,12 +285,12 @@ glava();
 <article class="c <?= $o['vrsta'] === 'Izmenjava' ? 'izm' : '' ?>">
 
     <?php if (!empty($o['slika']) && preg_match('/^[a-f0-9]{24}\.(jpg|png|webp)$/', $o['slika'])): ?>
-    <a class="slika" href="pat.si.php?oglas=<?= (int)$o['id'] ?>">
+    <a class="slika" href="/oglas/<?= (int)$o['id'] ?>">
         <img src="<?= h(URL_SLIK . $o['slika']) ?>" alt="Slika: <?= h($o['naslov']) ?>" loading="lazy">
     </a>
     <?php endif; ?>
 
-    <h3><a class="oglas-open" href="pat.si.php?oglas=<?= (int)$o['id'] ?>"><?= h($o['naslov']) ?></a></h3>
+    <h3><a class="oglas-open" href="/oglas/<?= (int)$o['id'] ?>"><?= h($o['naslov']) ?></a></h3>
 
     <div class="tags">
         <span class="tag <?= $o['vrsta'] === 'Izmenjava' ? 'p' : '' ?>"><?= h($o['vrsta']) ?></span>
@@ -315,7 +315,7 @@ glava();
     <div class="m">To je tvoj oglas.</div>
 
     <?php elseif ($u && isset($mojiPog[(int)$o['id']])): ?>
-    <a class="btn btn-pink" href="sporocila.php?id=<?= (int)$mojiPog[(int)$o['id']] ?>">💬 Odpri pogovor</a>
+    <a class="btn btn-pink" href="/pogovor/<?= (int)$mojiPog[(int)$o['id']] ?>">💬 Odpri pogovor</a>
 
     <?php elseif ($u): ?>
     <details>
@@ -334,7 +334,7 @@ glava();
     </details>
 
     <?php else: ?>
-    <div class="m"><a href="prijava.php">Prijavi se</a> za pošiljanje sporočil.</div>
+    <div class="m"><a href="/prijava">Prijavi se</a> za pošiljanje sporočil.</div>
     <?php endif; ?>
 
     <?php if ($lasten || ($jeAdmin && smeUpravljati($u, sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[(int)$o['uporabnik_id']])))): ?>

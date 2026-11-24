@@ -8,4 +8,22 @@ DirectoryIndex index.php pat.si.php
         Deny from all
     </IfModule>
 </FilesMatch>
-Options -Indexes
+Options -Indexes -MultiViews
+
+
+# Javni naslovi brez končnice PHP. Obstoječe zaščite zgoraj ostanejo.
+RewriteEngine On
+RewriteRule ^domov/?$ pat.si.php [L,QSA]
+RewriteRule ^profil/?$ moj-racun.php [L,QSA]
+RewriteRule ^objavi/?$ objavi.php [L,QSA]
+RewriteRule ^prijava/?$ prijava.php [L,QSA]
+RewriteRule ^registracija/?$ registracija.php [L,QSA]
+RewriteRule ^potrditev/?$ potrditev.php [L,QSA]
+RewriteRule ^odjava/?$ odjava.php [L,QSA]
+RewriteRule ^sporocila/?$ sporocila.php [L,QSA]
+RewriteRule ^pogovor/([0-9]+)/?$ sporocila.php?id=$1 [L,QSA]
+RewriteRule ^oglas/([0-9]+)/?$ pat.si.php?oglas=$1 [L,QSA]
+RewriteRule ^skrbnistvo/?$ admin.php [L,QSA]
+RewriteRule ^skrbnistvo/pregled-oglasov/?$ admin.php?zavihek=moderacija [L,QSA]
+RewriteRule ^skrbnistvo/(uporabniki|oglasi|pogovori)/([0-9]+)/?$ admin.php?zavihek=$1&id=$2 [L,QSA]
+RewriteRule ^skrbnistvo/(uporabniki|oglasi|pogovori|dnevnik|nastavitve)/?$ admin.php?zavihek=$1 [L,QSA]

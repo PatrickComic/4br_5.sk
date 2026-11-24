@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
             cakajPotrditev($u);
             try { posljiKodo($u); flash('ok','Kodo smo poslali na tvoj e-naslov.'); }
             catch (DomainException $e) { flash('err',$e->getMessage()); }
-            preusmeri('potrditev.php');
+            preusmeri('/potrditev');
         }
         prijavi($u); flash('ok','Račun je ustvarjen. Dobrodošel!'); preusmeri(DOMACA);
     } catch (DomainException $e) { $napaka=$e->getMessage(); }
@@ -36,5 +36,5 @@ glava('Registracija – PAT.si'); ?>
 <label>Geslo<input type="password" name="geslo" required minlength="10" maxlength="72" autocomplete="new-password"></label>
 <label>Ponovi geslo<input type="password" name="geslo2" required minlength="10" maxlength="72" autocomplete="new-password"></label>
 <p class="m">Uporabi dolgo geslo (najmanj 10 znakov). Skrbniki lahko zaradi podpore in moderiranja pregledajo in uredijo uporabniške podatke, oglase ter pogovore. Dostop do pogovorov se beleži.</p>
-<button>Ustvari račun</button></form><p class="m">Že imaš račun? <a href="prijava.php">Prijavi se</a></p></div>
+<button>Ustvari račun</button></form><p class="m">Že imaš račun? <a href="/prijava">Prijavi se</a></p></div>
 <?php noga(); ?>

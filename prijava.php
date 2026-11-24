@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST') {
         $ok=password_verify($pw,$u['geslo_hash']??'$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.');
         if (!$u || !$ok || $u['blokiran']) throw new DomainException('Napačno uporabniško ime, e-naslov ali geslo oziroma račun ni na voljo.');
         if (!$u['aktiviran']) {
-            if (preverjanjeVklopljeno()) { cakajPotrditev($u); preusmeri('potrditev.php'); }
+            if (preverjanjeVklopljeno()) { cakajPotrditev($u); preusmeri('/potrditev'); }
             izvedi('UPDATE uporabnik SET aktiviran=1 WHERE id=?',[$u['id']]); $u['aktiviran']=1;
         }
         prijavi($u); flash('ok','Pozdravljen, '.$u['uporabnisko_ime'].'!'); preusmeri(DOMACA);
@@ -22,4 +22,4 @@ glava('Prijava – PAT.si'); ?>
 <form method="post"><?=csrfPolje()?>
 <label>Uporabniško ime ali e-naslov<input name="prijavno" value="<?=h($vnos)?>" required maxlength="254" autocomplete="username"></label>
 <label>Geslo<input name="geslo" type="password" required autocomplete="current-password"></label>
-<button>Prijava</button></form><p class="m">Še nimaš računa? <a href="registracija.php">Registriraj se</a></p></div><?php noga(); ?>
+<button>Prijava</button></form><p class="m">Še nimaš računa? <a href="/registracija">Registriraj se</a></p></div><?php noga(); ?>

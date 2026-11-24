@@ -426,3 +426,28 @@ hr{border-top:1px solid var(--line)}
 .toast,.toast-err{--t:1.5s;animation:toastIn .18s ease-out both,toastOut 0s linear 1.5s forwards}
 @media(prefers-reduced-motion:reduce){.toast,.toast-err{animation:toastOut 0s linear 1.5s forwards}}
 @media(max-width:600px){.top .hw{gap:12px}.nav{gap:6px}.iskanje-dialog{padding:20px}.iskanje-vnos{flex-wrap:wrap}.iskanje-vnos button{width:100%}}
+
+
+/* Enotna modra paleta in kompaktni gumbi v glavi. */
+:root{--bg:#dce6f0;--card:#f4f8fe}
+body{background:linear-gradient(115deg,#e4ebf5 0%,#d3e0ee 65%,#d8e8e9 100%);background-attachment:fixed}
+.top{background:linear-gradient(110deg,#c0d1e7 0%,#acc4e0 65%,#a1bddc 100%);border-bottom:1px solid #91afd2;box-shadow:0 3px 16px #12345d12}
+.top .tagline h1{color:#102f55}.top .tagline p{color:#294b72}
+.top .nav-user,.top .nav-msg{color:#12345d}
+.top .nav-user:hover,.top .nav-msg:hover{background:#ffffff50;color:#0b2a55}
+.top .nav-search,.top .btn.btn-objavi,.top .nav-msg,.top .nav-admin{height:44px;min-height:44px;width:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:linear-gradient(180deg,#17457f 0%,#0b2a55 65%,#071c3b 100%);color:#fff;border:1px solid #153d6d;border-radius:10px;box-shadow:0 3px 9px #0b2a5526,inset 0 1px 0 #ffffff25;transform:none}
+.top .nav-search:hover,.top .btn.btn-objavi:hover,.top .nav-msg:hover,.top .nav-admin:hover{background:linear-gradient(180deg,#1e538f,#0b2a55);color:#fff;transform:none}
+.top .nav-search svg,.top .btn-objavi svg,.top .nav-msg svg,.top .nav-admin svg{width:22px;height:22px;flex:none}
+.nav-publish{display:inline-flex;padding:8px;margin:-8px;align-items:center}
+.top .btn.btn-objavi{justify-content:flex-start;padding-left:10px;gap:0;overflow:hidden;white-space:nowrap;transition:width .22s ease,background .15s ease}
+.objavi-label{display:inline-block;max-width:0;opacity:0;overflow:hidden;font-size:14px;transition:max-width .22s ease,opacity .15s ease,margin-left .22s ease}
+@media(hover:hover) and (pointer:fine){.nav-publish:hover .btn.btn-objavi{width:160px}.nav-publish:hover .objavi-label{max-width:110px;opacity:1;margin-left:9px}}
+.nav-publish:focus-within .btn.btn-objavi{width:160px}.nav-publish:focus-within .objavi-label{max-width:110px;opacity:1;margin-left:9px}
+.top .btn-pink{background:linear-gradient(180deg,#285a91,#173e6c);color:#fff;border:1px solid #173e6c;box-shadow:0 3px 9px #0b2a551c}
+.top .btn-pink:hover{background:linear-gradient(180deg,#326ba5,#173e6c)}
+@media(prefers-reduced-motion:reduce){.top .btn.btn-objavi,.objavi-label{transition:none}}
+
+.c,.c.izm{background:var(--card)}
+.top .nav-msg,.top .nav-admin{flex:none;text-decoration:none}
+.top .nav-msg{position:relative;overflow:visible}
+.top .nav-msg .bdg{position:absolute;top:-7px;right:-7px;margin:0;min-width:20px;padding:2px 5px;border:2px solid #acc4e0;font-size:11px;line-height:14px;text-align:center}

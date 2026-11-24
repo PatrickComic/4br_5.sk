@@ -20,7 +20,7 @@ date_default_timezone_set('Europe/Ljubljana');
 
 define('DB_DATOTEKA', patConfig()['database']);
 const SQL_DATOTEKA = __DIR__ . '/baza.sql';
-const DOMACA = 'pat.si.php';
+const DOMACA = '/domov';
 const OBVESTILA_EMAIL = 'info@pat.si';
 const SPLETNO_MESTO = 'https://pat.site.je'; // za povezave v e-poštnih obvestilih
 
@@ -38,7 +38,7 @@ const VRSTE = ['Prodaja', 'Izmenjava'];
 const STANJA = ['Novo', 'Rabljeno'];
 
 const MAPA_SLIK = __DIR__ . '/uploads';
-const URL_SLIK = 'uploads/';
+const URL_SLIK = '/uploads/';
 const MAX_SLIKA = 5 * 1024 * 1024; // 5 MB
 
 /* ---------- Baza ---------- */
@@ -171,7 +171,7 @@ function izbrisiSliko(?string $ime): void {
 }
 
 function preusmeri(string $url) {
-    header('Location: ' . $url);
+    header('Location: ' . pot($url));
     exit;
 }
 
@@ -233,7 +233,7 @@ function uporabnik(): ?array {
 
 function zahtevajPrijavo() {
     flash('err', 'Za to dejanje se moraš prijaviti.');
-    preusmeri('prijava.php');
+    preusmeri('/prijava');
 }
 
 /* ---------- Predalnik sporočil ---------- */
@@ -321,7 +321,7 @@ function obvestiEmail(string $komu, string $od, string $oglasNaslov, int $pogovo
     $telo =
         "Novo sporočilo od {$od} (oglas: {$oglasNaslov}).\n\n" .
         "Preberi in odgovori v predalniku:\n" .
-        rtrim(patConfig()['site_url'], '/') . '/sporocila.php?id=' . $pogovorId . "\n";
+        rtrim(patConfig()['site_url'], '/') . pot('sporocila.php?id=' . $pogovorId) . "\n";
 
     posljiPosto($komu, 'pat.si – novo sporočilo', $telo);
 }
@@ -456,11 +456,11 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= h($naslov) ?></title>
 <meta name="description" content="Kupi, prodaj ali zamenjaj šolske potrebščine – nove ali rabljene.">
-<link rel="icon" href="logo.png" type="image/png">
+<link rel="icon" href="/logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="stil.css?v=<?=filemtime(__DIR__.'/stil.css')?>">
+<link rel="stylesheet" href="/stil.css?v=<?=filemtime(__DIR__.'/stil.css')?>">
 </head>
 
 <body>
@@ -481,7 +481,7 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
 <div class="hw">
     <div class="brand">
         <a class="logo" href="<?= h(DOMACA) ?>" title="pat.si – domača stran">
-            <img src="logo.png" alt="pat.si – šolske potrebščine">
+            <img src="/logo.png" alt="pat.si – šolske potrebščine">
         </a>
 
         <div class="tagline">
@@ -494,15 +494,15 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
         <button type="button" class="btn-ghost nav-search" aria-label="Išči oglase" title="Išči oglase" aria-haspopup="dialog" aria-controls="iskanje-dialog" onclick="const d=document.getElementById('iskanje-dialog');d.showModal();d.querySelector('input').focus();">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         </button>
-        <a href="objavi.php" class="btn btn-objavi">＋ Objavi oglas</a>
-            <?php if ($u && (int)$u['admin_level'] > 0): ?><a class="btn btn-pink" href="admin.php">Skrbništvo</a><?php endif; ?>
+        <span class="nav-publish"><a href="/objavi" class="btn btn-objavi" aria-label="Objavi oglas" title="Objavi oglas"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="objavi-label" aria-hidden="true">Objavi oglas</span></a></span>
+            <?php if ($u && (int)$u['admin_level'] > 0): ?><a class="nav-admin" href="/skrbnistvo" aria-label="Skrbništvo" title="Skrbništvo"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 4 6v6c0 5 8 9 8 9s8-4 8-9V6l-8-3Z"/><path d="m8 12 3 3 5-6"/></svg></a><?php endif; ?>
         <?php if ($u): ?>
-        <a href="sporocila.php" class="nav-msg" title="Sporočila">✉ Sporočila<?php if ($neprebrana > 0): ?> <span class="bdg"><?= $neprebrana > 99 ? '99+' : (int)$neprebrana ?></span><?php endif; ?></a>
-        <a href="moj-racun.php" class="nav-user">👤 <?= h($u['uporabnisko_ime']) ?></a>
-        <form method="post" action="odjava.php"><?= csrfPolje() ?><button class="btn-ghost">Odjava</button></form>
+        <a href="/sporocila" class="nav-msg" title="Sporočila" aria-label="Sporočila<?= $neprebrana > 0 ? ', neprebranih: '.(int)$neprebrana : '' ?>"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><?php if ($neprebrana > 0): ?> <span class="bdg"><?= $neprebrana > 99 ? '99+' : (int)$neprebrana ?></span><?php endif; ?></a>
+        <a href="/profil" class="nav-user">👤 <?= h($u['uporabnisko_ime']) ?></a>
+        <form method="post" action="/odjava"><?= csrfPolje() ?><button class="btn-ghost">Odjava</button></form>
         <?php else: ?>
-        <a href="prijava.php" class="btn btn-ghost">Prijava</a>
-        <a href="registracija.php" class="btn">Registracija</a>
+        <a href="/prijava" class="btn btn-ghost">Prijava</a>
+        <a href="/registracija" class="btn">Registracija</a>
         <?php endif; ?>
     </nav>
 </div>
@@ -585,11 +585,11 @@ function prikaziOglas(int $id): void {
     $o=sqlVrstica('SELECT o.*,u.uporabnisko_ime AS avtor FROM oglas o JOIN uporabnik u ON u.id=o.uporabnik_id WHERE o.id=?',[$id]);
     $viewer=uporabnik();
     if ($o && $o['moderacija']!=='approved' && (!$viewer || ((int)$viewer['id']!==(int)$o['uporabnik_id'] && (int)$viewer['admin_level']<1))) $o=null;
-    if (!$o) {http_response_code(404);glava('Oglas ni na voljo – PAT.si');echo '<div class="panel"><h2>Oglas ni na voljo</h2><p>Oglas je bil odstranjen ali ne obstaja.</p><a class="btn" href="pat.si.php">Vsi oglasi</a></div>';noga();return;}
+    if (!$o) {http_response_code(404);glava('Oglas ni na voljo – PAT.si');echo '<div class="panel"><h2>Oglas ni na voljo</h2><p>Oglas je bil odstranjen ali ne obstaja.</p><a class="btn" href="/domov">Vsi oglasi</a></div>';noga();return;}
     $u=uporabnik();$lasten=$u&&(int)$u['id']===(int)$o['uporabnik_id'];$slike=slikeOglasa($o);
     $pog=$u?sqlVrstica('SELECT id FROM pogovor WHERE oglas_id=? AND kupec_id=?',[$id,$u['id']]):null;
     glava($o['naslov'].' – PAT.si'); ?>
-    <div class="oglas-back"><a href="pat.si.php">Vsi oglasi</a></div>
+    <div class="oglas-back"><a href="/domov">Vsi oglasi</a></div>
     <article class="oglas-detail">
       <div class="oglas-gallery" aria-label="Slike oglasa">
         <div class="oglas-stage">
@@ -614,14 +614,14 @@ function prikaziOglas(int $id): void {
         <div class="oglas-actions">
         <?php if($lasten): ?><p class="m">To je tvoj oglas.</p>
         <?php elseif($o['moderacija']!=='approved'): ?><p class="m">Pogovor je na voljo po odobritvi oglasa.</p>
-        <?php elseif($pog): ?><a class="btn btn-pink" href="sporocila.php?id=<?=(int)$pog['id']?>">Odpri pogovor</a>
+        <?php elseif($pog): ?><a class="btn btn-pink" href="/pogovor/<?=(int)$pog['id']?>">Odpri pogovor</a>
         <?php elseif($u): ?>
           <details><summary><?=$o['vrsta']==='Prodaja'?'Želim kupiti':'Predlagaj zamenjavo'?></summary>
-          <form method="post" action="pat.si.php"><?=csrfPolje()?><input type="hidden" name="akcija" value="povprasevanje"><input type="hidden" name="oglas_id" value="<?=$id?>">
+          <form method="post" action="/domov"><?=csrfPolje()?><input type="hidden" name="akcija" value="povprasevanje"><input type="hidden" name="oglas_id" value="<?=$id?>">
           <label>Sporočilo prodajalcu<textarea name="sporocilo" rows="4" maxlength="1000" placeholder="Napiši sporočilo prodajalcu" required></textarea></label><button type="submit" class="btn-pink">Pošlji sporočilo</button></form></details>
-        <?php else: ?><a class="btn btn-pink" href="prijava.php">Prijavi se za pogovor</a><?php endif; ?>
+        <?php else: ?><a class="btn btn-pink" href="/prijava">Prijavi se za pogovor</a><?php endif; ?>
         <?php if($u&&($lasten||smeUpravljati($u,sqlVrstica('SELECT * FROM uporabnik WHERE id=?',[$o['uporabnik_id']])))): ?>
-          <form method="post" action="pat.si.php" onsubmit="return confirm('Res izbrišem ta oglas?')"><?=csrfPolje()?><input type="hidden" name="akcija" value="brisi"><input type="hidden" name="oglas_id" value="<?=$id?>"><button type="submit" class="btn-danger">Izbriši oglas</button></form>
+          <form method="post" action="/domov" onsubmit="return confirm('Res izbrišem ta oglas?')"><?=csrfPolje()?><input type="hidden" name="akcija" value="brisi"><input type="hidden" name="oglas_id" value="<?=$id?>"><button type="submit" class="btn-danger">Izbriši oglas</button></form>
         <?php endif; ?>
         </div>
       </div>
@@ -689,4 +689,43 @@ function odlociOglas(array $a): void {
         dnevnik($a,$odlocitev==='approved'?'Odobritev oglasa':'Zavrnitev oglasa',(string)$id,$razlog);
         $db->exec('COMMIT');
     } catch(Throwable $e) { $db->exec('ROLLBACK'); throw $e; }
+}
+
+
+/* Javne poti so neodvisne od fizičnih imen datotek PHP. */
+function pot(string $url): string {
+    $parts=parse_url($url);
+    if ($parts===false || isset($parts['scheme']) || isset($parts['host'])) return $url;
+    $path=ltrim($parts['path']??'', '/'); $args=[];
+    parse_str($parts['query']??'', $args);
+    $map=[''=>'/domov','index.php'=>'/domov','pat.si.php'=>'/domov','moj-racun.php'=>'/profil',
+        'objavi.php'=>'/objavi','prijava.php'=>'/prijava','registracija.php'=>'/registracija',
+        'potrditev.php'=>'/potrditev','odjava.php'=>'/odjava','sporocila.php'=>'/sporocila','admin.php'=>'/skrbnistvo'];
+    $out=$map[$path]??('/'.$path);
+    if (in_array($path,['pat.si.php','index.php','domov',''],true) && isset($args['oglas']) && is_scalar($args['oglas']) && ctype_digit((string)$args['oglas'])) {
+        $out='/oglas/'.(int)$args['oglas'];unset($args['oglas']);
+    }
+    if ($path==='sporocila.php' && isset($args['id']) && is_scalar($args['id']) && ctype_digit((string)$args['id'])) {
+        $out='/pogovor/'.(int)$args['id'];unset($args['id']);
+    }
+    if ($path==='admin.php') {
+        $tabs=['pregled'=>'','moderacija'=>'pregled-oglasov','uporabniki'=>'uporabniki','oglasi'=>'oglasi','pogovori'=>'pogovori','dnevnik'=>'dnevnik','nastavitve'=>'nastavitve'];
+        $tab=is_string($args['zavihek']??null)?$args['zavihek']:'pregled';
+        if (isset($tabs[$tab])) { $out.=$tabs[$tab]!==''?'/'.$tabs[$tab]:'';unset($args['zavihek']); }
+        if (in_array($tab,['uporabniki','oglasi','pogovori'],true) && isset($args['id']) && is_scalar($args['id']) && ctype_digit((string)$args['id']) && (int)$args['id']>0) {
+            $out.='/'.(int)$args['id'];unset($args['id']);
+        } elseif (isset($args['id']) && $args['id']==='0') unset($args['id']);
+    }
+    if ($args) $out.='?'.http_build_query($args,'','&',PHP_QUERY_RFC3986);
+    if (isset($parts['fragment'])) $out.='#'.$parts['fragment'];
+    return $out;
+}
+
+// Preusmerjamo le branje starih naslovov; POST ostane nedotaknjen.
+if (in_array($_SERVER['REQUEST_METHOD']??'', ['GET','HEAD'],true)) {
+    $zahteva=$_SERVER['REQUEST_URI']??'';
+    $staraPot=parse_url($zahteva,PHP_URL_PATH);
+    if (in_array($staraPot,['/','/index.php','/pat.si.php','/moj-racun.php','/objavi.php','/prijava.php','/registracija.php','/potrditev.php','/odjava.php','/sporocila.php','/admin.php'],true)) {
+        header('Location: '.pot($zahteva),true,302);exit;
+    }
 }

@@ -69,19 +69,19 @@ glava('Moj račun – pat.si');
 <div class="panel">
     <h2>Sporočila</h2>
     <p class="m">Pogovori s kupci in prodajalci so v predalniku, ne v profilu.</p>
-    <a class="btn" href="sporocila.php">✉ Odpri predalnik<?php if ($nepr > 0): ?> <span class="bdg"><?= (int)$nepr ?></span><?php endif; ?></a>
+    <a class="btn" href="/sporocila">✉ Odpri predalnik<?php if ($nepr > 0): ?> <span class="bdg"><?= (int)$nepr ?></span><?php endif; ?></a>
 </div>
 
 <div class="panel">
     <h2>Moji oglasi (<?= count($moji) ?>)</h2>
 
     <?php if (!$moji): ?>
-    <p class="m">Še nimaš oglasov. <a href="objavi.php">Objavi prvega</a>.</p>
+    <p class="m">Še nimaš oglasov. <a href="/objavi">Objavi prvega</a>.</p>
     <?php endif; ?>
 
     <?php foreach ($moji as $o): ?>
     <div class="moj">
-        <h3><a href="pat.si.php?oglas=<?= (int)$o['id'] ?>"><?= h($o['naslov']) ?></a></h3>
+        <h3><a href="/oglas/<?= (int)$o['id'] ?>"><?= h($o['naslov']) ?></a></h3>
         <p><span class="badge status-<?=h($o['moderacija'])?>"><?=h(stanjeModeracije($o['moderacija']))?></span></p>
         <?php if($o['moderacija']==='pending'): ?><p class="m">Oglas še ni javno viden. Skrbnik bo pregledal naslov, opis in vse slike.</p><?php endif; ?>
         <?php if($o['moderacija']==='rejected'): ?><p class="msg err"><strong>Razlog zavrnitve:</strong><br><?=nl2br(h($o['razlog_moderacije']))?></p><?php endif; ?>

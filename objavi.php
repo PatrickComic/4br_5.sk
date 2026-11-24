@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
         flash('err', 'Slike so prevelike (vsaka do 5 MB).');
-        preusmeri('objavi.php');
+        preusmeri('/objavi');
     }
 
     preveriCsrf();
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             flash('ok', 'Oglas je oddan in čaka na pregled skrbnika. Odločitev prejmeš v sporočilih.');
-            preusmeri('moj-racun.php');
+            preusmeri('/profil');
 
         } catch (Throwable $e) {
             izbrisiSliko($slika);
@@ -105,7 +105,7 @@ glava('Objavi oglas – pat.si');
 
 <div class="oglas-back"><a href="<?= h(DOMACA) ?>">Vsi oglasi</a></div>
 
-<form class="oglas-detail objavi" method="post" action="objavi.php" enctype="multipart/form-data">
+<form class="oglas-detail objavi" method="post" action="/objavi" enctype="multipart/form-data">
     <?= csrfPolje() ?>
     <input type="hidden" name="akcija" value="oglas">
 

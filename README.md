@@ -1,23 +1,26 @@
 # PAT.si
 
-Spletna platforma za prodajo in izmenjavo šolskih potrebščin.
+PAT.si je spletna platforma za prodajo in izmenjavo šolskih potrebščin. Uporabnikom omogoča, da učbenikom, zvezkom, torbam in drugemu šolskemu priboru poiščejo novega lastnika ter se neposredno dogovorijo za nakup ali zamenjavo.
 
-Ta različica vsebuje izvorne datoteke, prenesene z InfinityFree 20. 11. 2026.
+## Glavne funkcionalnosti
 
-## Funkcionalnosti
+- Registracija in prijava s preverjanjem e-pošte s potrditveno kodo.
+- Objavljanje oglasov s ceno oziroma predlogom zamenjave ter galerijo do osmih slik.
+- Iskanje in filtriranje oglasov po kategoriji, stanju in vrsti ponudbe.
+- Osebni profil s pregledom lastnih oglasov in njihovega stanja.
+- Zasebni pogovori med uporabniki ter obvestila o odobritvi ali zavrnitvi oglasa.
+- Ročni pregled novih oglasov pred javno objavo.
+- Skrbniška nadzorna plošča za upravljanje uporabnikov, oglasov in pogovorov, nastavitve ter dnevnik dejanj. Dovoljenja so razdeljena med uporabnike, skrbnike in glavnega skrbnika.
+- Slovenski vmesnik, prilagojen različnim velikostim zaslona, in pregledni URL-ji brez končnice `.php`.
 
-- Registracija s potrditveno kodo po e-pošti in omejitvami pošiljanja.
-- Skrbniške ravni 0, 1 in 2; edini glavni skrbnik je račun admin.
-- Upravljanje uporabnikov, oglasov in pogovorov ter dnevnik skrbniških dejanj.
-- Podrobni pogled oglasa, galerija do 8 slik in samodejno menjavanje.
-- Zasebni pogovori med kupci in prodajalci.
+## Tehnologija in namestitev
 
-## Namestitev
+Projekt uporablja PHP 8.1 ali novejši, SQLite in PHPMailer. Potreben je Apache z omogočenimi prepisovanjem URL-jev (`mod_rewrite`) in pravili `.htaccess` ter razširitvama PDO SQLite in OpenSSL.
 
-Potreben je PHP 8.1 ali novejši z razširitvami PDO SQLite in OpenSSL ter spletni strežnik Apache. Datoteke prenesi v spletni root. Kopiraj config.example.php v config.local.php in nastavi lastne podatke SMTP (STARTTLS, port 587). Baza pat_baza.sqlite se ustvari samodejno, obstoječa baza pa se nadgradi ob prvem dostopu. Obstoječi račun admin dobi raven 2.
+Izvorne datoteke prenesi v spletni koren skupaj z datotekami `.htaccess`. Kopiraj `config.example.php` v `config.local.php` in nastavi naslov strani ter podatke SMTP. Strežnik mora imeti dovoljenje za zapisovanje baze in naloženih slik. Baza se ob prvem zagonu ustvari oziroma nadgradi samodejno; obstoječi račun `admin` postane glavni skrbnik.
 
-Produkcijska baza, gesla SMTP in uporabniške slike niso del repozitorija. PHPMailer je priložen v lib/PHPMailer z licenco LICENSE.
+Produkcijska baza, zasebna konfiguracija in uporabniške slike niso vključene v repozitorij. PHPMailer je priložen v `lib/PHPMailer` skupaj z licenco.
 
 ## Različice
 
-Prejšnje različice so ohranjene z Gitovimi oznakami in GitHub Releases. Mape s podvojenimi različicami niso potrebne.
+Izdaje in kratki povzetki sprememb so na voljo v [GitHub Releases](https://github.com/PatrickComic/4br_5.sk/releases).

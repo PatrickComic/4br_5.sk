@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (postText('akcija')==='preberi_obvestila') {
         izvedi('UPDATE pat_obvestila SET prebrano=1 WHERE uporabnik_id=?',[$uid]);
-        preusmeri('sporocila.php');
+        preusmeri('/sporocila');
     }
 
     $pid = (int)($_POST['pogovor_id'] ?? 0);
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!$p) {
         flash('err', 'Pogovor ne obstaja.');
-        preusmeri('sporocila.php');
+        preusmeri('/sporocila');
     }
 
     if ($besedilo === '') {
@@ -155,7 +155,7 @@ glava('Sporočila – pat.si');
             }
         ?>
         <a class="conv <?= $jeAktiven ? 'act' : '' ?> <?= (int)$c['nepr'] > 0 ? 'nepr' : '' ?>"
-           href="sporocila.php?id=<?= (int)$c['id'] ?>">
+           href="/pogovor/<?= (int)$c['id'] ?>">
             <span class="av" aria-hidden="true"><?= h(crka((string)$c['drugi'])) ?></span>
 
             <span class="conv-b">
@@ -186,7 +186,7 @@ glava('Sporočila – pat.si');
 
         <?php else: ?>
         <div class="thread-h">
-            <a class="back" href="sporocila.php">← Nazaj</a>
+            <a class="back" href="/sporocila">← Nazaj</a>
             <span class="av" aria-hidden="true"><?= h(crka((string)$trenutni['drugi'])) ?></span>
             <div class="thread-who">
                 <strong><?= h($trenutni['drugi']) ?></strong>
@@ -219,7 +219,7 @@ glava('Sporočila – pat.si');
             <?php endforeach; ?>
         </div>
 
-        <form class="reply" method="post" action="sporocila.php">
+        <form class="reply" method="post" action="/sporocila">
             <?= csrfPolje() ?>
             <input type="hidden" name="pogovor_id" value="<?= (int)$trenutni['id'] ?>">
             <textarea name="besedilo" rows="1" maxlength="1000" placeholder="Napiši sporočilo…" aria-label="Sporočilo" required></textarea>
@@ -250,8 +250,8 @@ glava('Sporočila – pat.si');
 
 <?php if($obvestila): ?>
 <section class="panel obvestila" aria-label="Obvestila o oglasih"><h2>Obvestila o oglasih</h2>
-<form method="post" action="sporocila.php"><?=csrfPolje()?><input type="hidden" name="akcija" value="preberi_obvestila"><button class="btn-ghost">Označi obvestila kot prebrana</button></form>
-<?php foreach($obvestila as $ob): ?><article class="admin-message <?=$ob['prebrano']?'':'obvestilo-novo'?>"><h3><?=h($ob['naslov'])?> <?php if(!$ob['prebrano']): ?><span class="badge">Novo</span><?php endif; ?></h3><p class="m"><?=h(date('j. n. Y H:i',(int)$ob['ts']))?> · Skrbništvo PAT.si</p><p><?=nl2br(h($ob['besedilo']))?></p><?php if($ob['oglas_id']): ?><a href="pat.si.php?oglas=<?=(int)$ob['oglas_id']?>">Odpri svoj oglas</a><?php endif; ?></article><?php endforeach; ?>
+<form method="post" action="/sporocila"><?=csrfPolje()?><input type="hidden" name="akcija" value="preberi_obvestila"><button class="btn-ghost">Označi obvestila kot prebrana</button></form>
+<?php foreach($obvestila as $ob): ?><article class="admin-message <?=$ob['prebrano']?'':'obvestilo-novo'?>"><h3><?=h($ob['naslov'])?> <?php if(!$ob['prebrano']): ?><span class="badge">Novo</span><?php endif; ?></h3><p class="m"><?=h(date('j. n. Y H:i',(int)$ob['ts']))?> · Skrbništvo PAT.si</p><p><?=nl2br(h($ob['besedilo']))?></p><?php if($ob['oglas_id']): ?><a href="/oglas/<?=(int)$ob['oglas_id']?>">Odpri svoj oglas</a><?php endif; ?></article><?php endforeach; ?>
 </section>
 <?php endif; ?>
 <?php noga(); ?>
