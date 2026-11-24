@@ -182,9 +182,23 @@ if (in_array($fv, VRSTE, true)) {
     $params[] = $fv;
 }
 
-$st = $db->prepare($sql . ' ORDER BY o.ts DESC, o.id DESC LIMIT 200');
+// Lastni odobreni oglasi imajo prednost tudi pred omejitvijo rezultatov.
+$vrstniRed = ' ORDER BY o.ts DESC, o.id DESC LIMIT 200';
+if ($u) {
+    $vrstniRed = ' ORDER BY CASE WHEN o.uporabnik_id = ? THEN 0 ELSE 1 END, o.ts DESC, o.id DESC LIMIT 200';
+    $params[] = (int)$u['id'];
+}
+$st = $db->prepare($sql . $vrstniRed);
 $st->execute($params);
 $oglasi = $st->fetchAll();
+$mojiOglasi = []; $ostaliOglasi = [];
+foreach ($oglasi as $o) {
+    if ($u && (int)$o['uporabnik_id'] === (int)$u['id']) $mojiOglasi[] = $o;
+    else $ostaliOglasi[] = $o;
+}
+$skupine = $mojiOglasi
+    ? ['Moji oglasi' => $mojiOglasi, 'Ostali oglasi' => $ostaliOglasi]
+    : ['' => $oglasi];
 
 $skupaj = count($oglasi);
 $filtriran = ($q !== '' || $fk !== '' || $fs !== '' || $fv !== '');
@@ -212,7 +226,7 @@ glava();
 <div class="msg err" role="alert"><?= h($napaka) ?></div>
 <?php endif; ?>
 
-<form class="search" method="get" action="<?= h(DOMACA) ?>">
+<form class="search search-oglasi" role="search" aria-label="Iskanje in filtriranje oglasov" method="get" action="<?= h(DOMACA) ?>">
     <input name="q" value="<?= h($q) ?>" placeholder="🔍 Išči oglase..." maxlength="100" aria-label="Iskanje">
 
     <select name="kat" aria-label="Kategorija">
@@ -255,16 +269,18 @@ glava();
     <?php endif; ?>
 </div>
 
-<section class="g">
+<?php foreach ($skupine as $imeSkupine => $oglasiSkupine): ?>
+<?php if ($imeSkupine !== ''): ?><h2 class="oglasi-naslov"><?=h($imeSkupine)?></h2><?php endif; ?>
+<section class="g" aria-label="<?=h($imeSkupine ?: 'Oglasi')?>">
 
-<?php if (!$oglasi): ?>
+<?php if (!$oglasiSkupine): ?>
 <div class="empty">
-    <p><strong>Ni oglasov.</strong></p>
-    <p><?= $filtriran ? 'Poskusi z drugimi iskalnimi pogoji.' : 'Bodi prvi in objavi oglas!' ?></p>
+    <p><strong><?=$imeSkupine === 'Ostali oglasi' ? 'Ni ostalih oglasov.' : 'Ni oglasov.'?></strong></p>
+    <p><?= $filtriran ? 'Poskusi z drugimi iskalnimi pogoji.' : ($imeSkupine === 'Ostali oglasi' ? 'Tukaj bodo prikazani oglasi drugih uporabnikov.' : 'Bodi prvi in objavi oglas!') ?></p>
 </div>
 <?php endif; ?>
 
-<?php foreach ($oglasi as $o): ?>
+<?php foreach ($oglasiSkupine as $o): ?>
 <?php $lasten = $u && (int)$o['uporabnik_id'] === (int)$u['id']; ?>
 <article class="c <?= $o['vrsta'] === 'Izmenjava' ? 'izm' : '' ?>">
 
@@ -334,5 +350,6 @@ glava();
 <?php endforeach; ?>
 
 </section>
+<?php endforeach; ?>
 
 <?php noga(); ?>

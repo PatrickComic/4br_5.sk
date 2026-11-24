@@ -491,6 +491,9 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
     </div>
 
     <nav class="nav">
+        <button type="button" class="btn-ghost nav-search" aria-label="Išči oglase" title="Išči oglase" aria-haspopup="dialog" aria-controls="iskanje-dialog" onclick="const d=document.getElementById('iskanje-dialog');d.showModal();d.querySelector('input').focus();">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        </button>
         <a href="objavi.php" class="btn btn-objavi">＋ Objavi oglas</a>
             <?php if ($u && (int)$u['admin_level'] > 0): ?><a class="btn btn-pink" href="admin.php">Skrbništvo</a><?php endif; ?>
         <?php if ($u): ?>
@@ -504,7 +507,14 @@ function glava(string $naslov = 'pat.si – šolske potrebščine'): void {
     </nav>
 </div>
 </header>
-
+<dialog id="iskanje-dialog" class="iskanje-dialog" aria-labelledby="iskanje-naslov">
+    <div class="iskanje-glava"><h2 id="iskanje-naslov">Poišči oglas</h2><button type="button" class="btn-ghost" aria-label="Zapri iskanje" onclick="this.closest('dialog').close()">×</button></div>
+    <form method="get" action="<?=h(DOMACA)?>" class="iskanje-obrazec">
+        <label for="hitro-iskanje">Naslov ali opis oglasa</label>
+        <div class="iskanje-vnos"><input id="hitro-iskanje" name="q" type="search" maxlength="100" placeholder="Kaj iščeš?" value="<?=h(is_string($_GET['q']??null)?(function_exists('mb_substr')?mb_substr($_GET['q'],0,100):substr($_GET['q'],0,100)):'')?>"><button type="submit">Išči</button></div>
+    </form>
+    <p class="m">Za iskanje po kategoriji ali stanju uporabi filtre na začetni strani.</p>
+</dialog>
 <main class="w">
 
 <?php
@@ -522,6 +532,18 @@ function noga(): void {
 </div>
 </footer>
 
+<script>
+(() => {
+    const toast = document.querySelector('.toast');
+    if (toast) window.setTimeout(() => toast.remove(), 1500);
+    const dialog = document.getElementById('iskanje-dialog');
+    if (dialog) dialog.addEventListener('click', event => {
+        if (event.target !== dialog) return;
+        const r = dialog.getBoundingClientRect();
+        if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close();
+    });
+})();
+</script>
 </body>
 </html>
 <?php
