@@ -102,7 +102,7 @@ function omeji(array $pravila): void {
 function postaPripravljena(): bool {
     $c=patConfig(); return $c['smtp_host']!=='' && $c['smtp_username']!=='' && $c['smtp_password']!=='' && filter_var($c['mail_from'],FILTER_VALIDATE_EMAIL);
 }
-function posljiPosto(string $komu,string $naslov,string $telo): bool {
+function posljiPosto(string $komu,string $naslov,string $telo,string $html=''): bool {
     if (!postaPripravljena()) return false;
     require_once __DIR__.'/lib/PHPMailer/Exception.php';
     require_once __DIR__.'/lib/PHPMailer/PHPMailer.php';
@@ -114,6 +114,14 @@ function posljiPosto(string $komu,string $naslov,string $telo): bool {
         $m->SMTPSecure=\PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
         $m->Timeout=15; $m->CharSet='UTF-8'; $m->setFrom($c['mail_from'],$c['mail_name']);
         $m->addAddress($komu); $m->Subject=$naslov; $m->Body=$telo;
+        if ($html !== '') {
+            $m->isHTML(true);
+            $m->Body=$html;
+            $m->AltBody=$telo;
+            $logo=file_get_contents(__DIR__.'/logo.png');
+            if ($logo===false) throw new RuntimeException('Logotipa ni mogoče prebrati.');
+            $m->addStringEmbeddedImage($logo,'pat-logo','pat-logo.png','base64','image/png');
+        }
         return $m->send();
     } catch (Throwable $e) { error_log('PAT.si: pošiljanje SMTP ni uspelo.'); return false; }
 }
@@ -124,7 +132,9 @@ function posljiKodo(array $u): void {
     omeji([[$k,1,60],[$k,5,3600],[$k,10,86400],[$ip,20,3600],[$ip,50,86400],['code-global',200,3600]]);
     $code=(string)random_int(100000,999999); $hash=password_hash($code,PASSWORD_DEFAULT);
     izvedi('INSERT INTO pat_kode(uporabnik_id,hash,potece,poskusi) VALUES (?,?,?,0) ON CONFLICT(uporabnik_id) DO UPDATE SET hash=excluded.hash,potece=excluded.potece,poskusi=0',[$u['id'],$hash,time()+600]);
-    if (!posljiPosto($u['email'],'PAT.si – potrditvena koda',"Živjo, {$u['uporabnisko_ime']}!\n\nTvoja potrditvena koda je: $code\n\nVelja 10 minut. Vnesi jo na strani za potrditev računa. Nove kode razveljavijo stare. Če registracije nisi zahteval, prezri to sporočilo.\n\nPAT.si")) {
+    require_once __DIR__.'/email.php';
+    $posta=potrditvenaPosta((string)$u['uporabnisko_ime'],$code);
+    if (!posljiPosto($u['email'],'PAT.si – potrditvena koda',$posta['besedilo'],$posta['html'])) {
         izvedi('DELETE FROM pat_kode WHERE uporabnik_id=? AND hash=?',[$u['id'],$hash]);
         throw new DomainException('Kode ni bilo mogoče poslati. Poskusi pozneje ali obvesti skrbnika.');
     }
